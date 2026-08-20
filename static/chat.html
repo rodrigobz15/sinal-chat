@@ -317,36 +317,19 @@ const sendBtn = document.getElementById('sendBtn');
 
 // STUN público do Google — funciona para boa parte das conexões.
 // Para produção de verdade, adicione também um servidor TURN (veja README).
-// STUN/TURN. Preencha METERED_APP_NAME e METERED_API_KEY (grátis em metered.ca)
-// pra usar credenciais só suas, bem mais confiáveis que as compartilhadas do
-// Open Relay abaixo — importante pra quem conecta pela rede de dados móveis.
-const METERED_APP_NAME = ''; // ex: 'seuapp.metered.live'
-const METERED_API_KEY = '';  // ex: 'abc123...'
-
-const FALLBACK_ICE_SERVERS = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  // TURN gratuito do Open Relay Project — compartilhado com todo mundo que
-  // usa esse serviço, então pode ficar sobrecarregado/instável.
-  { urls: 'stun:openrelay.metered.ca:80' },
-  { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-  { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-  { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+// STUN/TURN dedicados (conta grátis no Metered) — bem mais confiáveis que
+// servidores públicos compartilhados, essencial pra conectar entre redes
+// diferentes (ex: wifi de um lado e dados móveis do outro).
+const ICE_SERVERS = [
+  { urls: 'stun:stun.relay.metered.ca:80' },
+  { urls: 'turn:global.relay.metered.ca:80', username: 'c021dfe6c9ba7996cf4270b1', credential: 'G9rHTJo9tdA6cJHu' },
+  { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: 'c021dfe6c9ba7996cf4270b1', credential: 'G9rHTJo9tdA6cJHu' },
+  { urls: 'turn:global.relay.metered.ca:443', username: 'c021dfe6c9ba7996cf4270b1', credential: 'G9rHTJo9tdA6cJHu' },
+  { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'c021dfe6c9ba7996cf4270b1', credential: 'G9rHTJo9tdA6cJHu' },
 ];
 
 async function getIceServers() {
-  if (!METERED_APP_NAME || !METERED_API_KEY) {
-    return FALLBACK_ICE_SERVERS;
-  }
-  try {
-    const res = await fetch(`https://${METERED_APP_NAME}.metered.live/api/v1/turn/credentials?apiKey=${METERED_API_KEY}`);
-    if (!res.ok) throw new Error('resposta não-ok do Metered');
-    const servers = await res.json();
-    return servers.length ? servers : FALLBACK_ICE_SERVERS;
-  } catch (err) {
-    console.warn('Falha ao buscar credenciais TURN do Metered, usando fallback:', err);
-    return FALLBACK_ICE_SERVERS;
-  }
+  return ICE_SERVERS;
 }
 
 let ws = null;
