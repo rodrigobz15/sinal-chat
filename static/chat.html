@@ -317,24 +317,64 @@ const sendBtn = document.getElementById('sendBtn');
 
 // STUN público do Google — funciona para boa parte das conexões.
 // Para produção de verdade, adicione também um servidor TURN (veja README).
-const ICE_SERVERS = [
+// STUN/TURN. Preencha METERED_APP_NAME e METERED_API_KEY (grátis em metered.ca)
+// pra usar credenciais só suas, bem mais confiáveis que as compartilhadas do
+// Open Relay abaixo — importante pra quem conecta pela rede de dados móveis.
+const METERED_APP_NAME = ''; // ex: 'seuapp.metered.live'
+const METERED_API_KEY = '';  // ex: 'abc123...'
+
+const FALLBACK_ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
-  // TURN gratuito do Open Relay Project (Metered) — credenciais públicas de teste.
-  // Funciona pra começar, mas é compartilhado com todo mundo que usa esse mesmo
-  // par usuário/senha, então tem cota. Pra algo mais estável, crie uma conta
-  // grátis em metered.ca e troque por credenciais próprias (ver README).
+  // TURN gratuito do Open Relay Project — compartilhado com todo mundo que
+  // usa esse serviço, então pode ficar sobrecarregado/instável.
   { urls: 'stun:openrelay.metered.ca:80' },
   { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
   { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
   { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
 ];
 
+async function getIceServers() {
+  if (!METERED_APP_NAME || !METERED_API_KEY) {
+    return FALLBACK_ICE_SERVERS;
+  }
+  try {
+    const res = await fetch(`https://${METERED_APP_NAME}.metered.live/api/v1/turn/credentials?apiKey=${METERED_API_KEY}`);
+    if (!res.ok) throw new Error('resposta não-ok do Metered');
+    const servers = await res.json();
+    return servers.length ? servers : FALLBACK_ICE_SERVERS;
+  } catch (err) {
+    console.warn('Falha ao buscar credenciais TURN do Metered, usando fallback:', err);
+    return FALLBACK_ICE_SERVERS;
+  }
+}
+
 let ws = null;
 let pc = null;
 let localStream = null;
 let role = null; // 'caller' | 'callee'
 let connected = false;
+let searchWatchdog = null;
+
+function armSearchWatchdog() {
+  clearSearchWatchdog();
+  // Se ficar "procurando" por tempo demais sem conectar de verdade, tenta se
+  // re-parear sozinho — evita ficar preso quando uma mensagem de pareamento
+  // se perde (mais comum em redes móveis instáveis).
+  searchWatchdog = setTimeout(() => {
+    if (!connected && ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'next' }));
+      armSearchWatchdog();
+    }
+  }, 7000);
+}
+
+function clearSearchWatchdog() {
+  if (searchWatchdog) {
+    clearTimeout(searchWatchdog);
+    searchWatchdog = null;
+  }
+}
 
 // Preferências vindas da landing page via querystring: ?mode=video&country=BR&interests=games,musica
 const params = new URLSearchParams(location.search);
@@ -395,9 +435,14 @@ function connectSocket() {
     switch (data.type) {
       case 'waiting':
         setStatus('searching', 'procurando estranho...');
+        armSearchWatchdog();
         break;
 
       case 'matched':
+        clearSearchWatchdog();
+        // Garante um estado limpo mesmo se alguma mensagem anterior (tipo
+        // 'partner-left') tiver se perdido no caminho.
+        teardownPeer();
         role = data.role;
         setStatus('connected', 'conectado');
         connected = true;
@@ -447,6 +492,7 @@ function connectSocket() {
         addMsg('o estranho saiu da conversa.', 'system');
         teardownPeer();
         setStatus('searching', 'procurando outro estranho...');
+        armSearchWatchdog();
         break;
     }
   };
@@ -459,7 +505,8 @@ function connectSocket() {
 }
 
 async function setupPeerConnection() {
-  pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+  const iceServers = await getIceServers();
+  pc = new RTCPeerConnection({ iceServers });
 
   localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
@@ -470,6 +517,20 @@ async function setupPeerConnection() {
   pc.onicecandidate = (event) => {
     if (event.candidate) {
       ws.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
+    }
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    const state = pc.iceConnectionState;
+    console.log('ICE state:', state);
+    if (state === 'checking') {
+      addMsg('conectando o vídeo...', 'system');
+    } else if (state === 'connected' || state === 'completed') {
+      // silencioso, já dá pra ver o vídeo aparecendo
+    } else if (state === 'failed') {
+      addMsg('não consegui conectar o vídeo com esse estranho (rede muito restrita). tenta "próximo".', 'system');
+    } else if (state === 'disconnected') {
+      addMsg('conexão de vídeo instável...', 'system');
     }
   };
 }
@@ -496,6 +557,7 @@ function next() {
 }
 
 function stop() {
+  clearSearchWatchdog();
   teardownPeer();
   if (ws) ws.close();
   if (localStream) {
