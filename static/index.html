@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>sinal — converse com estranhos ao vivo</title>
+<title>2isPair — converse com estranhos ao vivo</title>
 <style>
   :root{
     --bg: #0b0d10;
@@ -17,6 +17,26 @@
     --mono: 'IBM Plex Mono', 'Courier New', monospace;
     --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
+
+  body[data-theme="light"]{
+    --bg: #f7f8fa;
+    --panel: #ffffff;
+    --panel-2: #f0f2f5;
+    --line: #e2e6ea;
+    --text: #14181c;
+    --dim: #6b7680;
+  }
+
+  .theme-toggle{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .theme-toggle:hover{ border-color: var(--dim); }
 
   * { box-sizing: border-box; }
 
@@ -249,8 +269,11 @@
 <body>
 
 <header>
-  <div class="brand">sinal_</div>
-  <div class="online-pill"><span class="dot"></span><span id="onlineCount">—</span> online agora</div>
+  <div class="brand">2isPair</div>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <div class="online-pill"><span class="dot"></span><span id="onlineCount">—</span> online agora</div>
+    <button class="theme-toggle" id="themeToggle" title="Alternar tema">☀️</button>
+  </div>
 </header>
 
 <main>
@@ -307,7 +330,7 @@
   </div>
 </main>
 
-<footer>sinal_ — protótipo pessoal, sem fins comerciais (por enquanto)</footer>
+<footer>2isPair — protótipo pessoal, sem fins comerciais (por enquanto)</footer>
 
 <script>
 let selectedMode = 'video';
@@ -340,6 +363,18 @@ async function updateOnlineCount() {
 }
 updateOnlineCount();
 setInterval(updateOnlineCount, 10000);
+
+// Tema claro/escuro, salvo pro navegador lembrar na próxima visita
+function applyTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
+  document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+applyTheme(localStorage.getItem('theme') || 'dark');
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  localStorage.setItem('theme', next);
+  applyTheme(next);
+});
 </script>
 </body>
 </html>

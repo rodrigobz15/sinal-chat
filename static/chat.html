@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>sinal — converse com um estranho</title>
+<title>2isPair — converse com um estranho</title>
 <style>
   :root{
     --bg: #0b0d10;
@@ -11,12 +11,31 @@
     --line: #1f262e;
     --text: #e7ecf0;
     --dim: #7a8794;
-    --accent: #5eead4;    /* sinal / conectado */
+    --accent: #5eead4;    /* 2isPair / conectado */
     --accent-2: #a78bfa;  /* procurando */
     --danger: #f87171;
     --mono: 'IBM Plex Mono', 'Courier New', monospace;
     --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
+
+  body[data-theme="light"]{
+    --bg: #f7f8fa;
+    --panel: #ffffff;
+    --line: #e2e6ea;
+    --text: #14181c;
+    --dim: #6b7680;
+  }
+
+  .theme-toggle{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .theme-toggle:hover{ border-color: var(--dim); }
 
   * { box-sizing: border-box; }
 
@@ -107,7 +126,7 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    min-height: 180px;
+    aspect-ratio: 1 / 1;
   }
 
   video{
@@ -264,10 +283,11 @@
 <header>
   <div class="brand">
     <span class="dot" id="statusDot"></span>
-    sinal_
+    2isPair
   </div>
-  <div style="display:flex; align-items:center; gap:20px;">
+  <div style="display:flex; align-items:center; gap:14px;">
     <div class="status-text" id="statusText">desconectado</div>
+    <button class="theme-toggle" id="themeToggle" title="Alternar tema">☀️</button>
     <a class="back-link" href="/" id="leaveLink">← sair</a>
   </div>
 </header>
@@ -578,6 +598,18 @@ document.getElementById('leaveLink').addEventListener('click', (e) => {
   e.preventDefault();
   stop(); // avisa o parceiro (via fechamento do WS) e limpa tudo antes de sair
   location.href = '/';
+});
+
+// Tema claro/escuro, salvo pro navegador lembrar na próxima visita
+function applyTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
+  document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+applyTheme(localStorage.getItem('theme') || 'dark');
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  localStorage.setItem('theme', next);
+  applyTheme(next);
 });
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') sendChat();
