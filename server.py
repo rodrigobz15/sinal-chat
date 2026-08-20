@@ -39,11 +39,12 @@ class Peer:
         self.country = "any"
         self.tags: set[str] = set()
 
-    async def send(self, payload: dict):
+    async def send(self, payload: dict) -> bool:
         try:
             await self.ws.send_text(json.dumps(payload))
+            return True
         except Exception:
-            pass
+            return False
 
     def set_preferences(self, mode: str, country: str, interests: list[str]):
         self.mode = mode if mode in ("video", "text") else "video"
@@ -74,14 +75,17 @@ class Matchmaker:
 
     async def enqueue(self, peer: Peer):
         async with self.lock:
-            if self.waiting:
+            # Vídeo só casa com vídeo, texto só com texto — misturar quebra
+            # a chamada (um lado nunca vai ter câmera pra negociar).
+            same_mode = [p for p in self.waiting if p.mode == peer.mode]
+            if same_mode:
                 # Escolhe quem tem mais em comum com o peer que chegou.
-                # Se ninguém tiver nada em comum, casa com o primeiro da fila
-                # mesmo assim — preferência, não trava.
+                # Se ninguém tiver nada em comum, casa com o primeiro
+                # compatível mesmo assim — preferência, não trava.
                 best_partner = None
                 best_score = -1
                 best_shared: list[str] = []
-                for candidate in self.waiting:
+                for candidate in same_mode:
                     score, shared = match_score(peer, candidate)
                     if score > best_score:
                         best_score = score
@@ -103,6 +107,14 @@ class Matchmaker:
         async with self.lock:
             if peer in self.waiting:
                 self.waiting.remove(peer)
+
+    async def partner_unreachable(self, peer: Peer):
+        """Chamado quando o envio pro parceiro falha — a conexão dele morreu
+        sem o servidor perceber (comum em redes móveis instáveis). Devolve
+        quem ainda está vivo (peer) pra fila."""
+        peer.partner = None
+        await peer.send({"type": "partner-left"})
+        await self.enqueue(peer)
 
     async def disconnect(self, peer: Peer):
         """Chamado quando o peer sai ou fecha a conexão."""
@@ -159,11 +171,19 @@ async def websocket_endpoint(websocket: WebSocket):
 
             elif msg_type in ("offer", "answer", "candidate", "chat"):
                 if peer.partner:
-                    await peer.partner.send({**data, "from": peer.id})
+                    ok = await peer.partner.send({**data, "from": peer.id})
+                    if not ok:
+                        await matchmaker.partner_unreachable(peer)
 
             elif msg_type == "typing":
                 if peer.partner:
                     await peer.partner.send({"type": "typing"})
+
+            elif msg_type == "ping":
+                # Só recebe a mensagem mesmo — mantém a conexão "viva" e evita
+                # que proxies/plataformas de hospedagem derrubem WebSockets
+                # ociosos por timeout.
+                await peer.send({"type": "pong"})
 
     except WebSocketDisconnect:
         pass

@@ -268,7 +268,7 @@
   </div>
   <div style="display:flex; align-items:center; gap:20px;">
     <div class="status-text" id="statusText">desconectado</div>
-    <a class="back-link" href="/">← sair</a>
+    <a class="back-link" href="/" id="leaveLink">← sair</a>
   </div>
 </header>
 
@@ -375,6 +375,14 @@ function clearSearchWatchdog() {
     searchWatchdog = null;
   }
 }
+
+// Manda um "ping" periódico pro servidor — evita que a conexão seja
+// derrubada por inatividade (proxies costumam fechar WebSockets ociosos).
+setInterval(() => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'ping' }));
+  }
+}, 20000);
 
 // Preferências vindas da landing page via querystring: ?mode=video&country=BR&interests=games,musica
 const params = new URLSearchParams(location.search);
@@ -582,6 +590,12 @@ startBtn.onclick = start;
 nextBtn.onclick = next;
 stopBtn.onclick = stop;
 sendBtn.onclick = sendChat;
+
+document.getElementById('leaveLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  stop(); // avisa o parceiro (via fechamento do WS) e limpa tudo antes de sair
+  location.href = '/';
+});
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') sendChat();
 });
