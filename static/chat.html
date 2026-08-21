@@ -437,6 +437,7 @@ function connectSocket() {
 
   ws.onopen = () => {
     setStatus('searching', 'procurando estranho...');
+    nextBtn.disabled = false;
     ws.send(JSON.stringify({ type: 'join', mode: MODE, country: COUNTRY, interests: INTERESTS }));
   };
 
@@ -555,7 +556,8 @@ function teardownPeer() {
   remotePlaceholder.style.display = 'block';
   remoteLabel.style.display = 'none';
   connected = false;
-  nextBtn.disabled = true;
+  // nextBtn fica de propósito habilitado — é a forma manual de "procurar
+  // outra pessoa" caso o re-pareamento automático demore.
   chatInput.disabled = true;
   sendBtn.disabled = true;
 }
@@ -578,6 +580,7 @@ function stop() {
   setStatus('', 'desconectado');
   startBtn.disabled = false;
   stopBtn.disabled = true;
+  nextBtn.disabled = true;
   chatLog.innerHTML = '';
 }
 
@@ -597,7 +600,7 @@ sendBtn.onclick = sendChat;
 document.getElementById('leaveLink').addEventListener('click', (e) => {
   e.preventDefault();
   stop(); // avisa o parceiro (via fechamento do WS) e limpa tudo antes de sair
-  location.href = '/';
+  setTimeout(() => { location.href = '/'; }, 150);
 });
 
 // Tema claro/escuro, salvo pro navegador lembrar na próxima visita

@@ -18,6 +18,7 @@ Este servidor só ajuda os dois lados a se "apresentarem".
 import asyncio
 import json
 import logging
+import time
 import uuid
 from typing import Optional
 
@@ -38,6 +39,7 @@ class Peer:
         self.mode = "video"
         self.country = "any"
         self.tags: set[str] = set()
+        self.last_seen = time.monotonic()
 
     async def send(self, payload: dict) -> bool:
         try:
@@ -134,6 +136,35 @@ matchmaker = Matchmaker()
 # só pra alimentar o contador de "online" na landing page.
 active_peers: set[str] = set()
 
+# Registro de todos os peers vivos, pra "tarefa de vigia" conseguir checar
+# quem parou de dar sinal de vida (celular que travou, app em segundo plano,
+# rede que caiu sem avisar o servidor).
+peer_registry: dict[str, Peer] = {}
+
+STALE_TIMEOUT = 40  # segundos sem nenhuma mensagem = considera morto
+
+
+async def reap_stale_peers():
+    """Roda pra sempre em segundo plano: fecha conexões que pararam de
+    responder há tempo demais. Isso resolve o bug de "um lado acha que está
+    conectado, mas o outro nunca recebe nada" — a conexão zumbi finalmente é
+    encerrada de verdade, liberando quem ainda está vivo pra ser re-pareado."""
+    while True:
+        await asyncio.sleep(10)
+        now = time.monotonic()
+        for peer_id, peer in list(peer_registry.items()):
+            if now - peer.last_seen > STALE_TIMEOUT:
+                logger.info(f"Peer {peer_id} sem sinal de vida há {STALE_TIMEOUT}s+, encerrando")
+                try:
+                    await peer.ws.close()
+                except Exception:
+                    pass
+
+
+@app.on_event("startup")
+async def start_background_tasks():
+    asyncio.create_task(reap_stale_peers())
+
 
 @app.get("/api/stats")
 async def stats():
@@ -145,10 +176,12 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     peer = Peer(websocket)
     active_peers.add(peer.id)
+    peer_registry[peer.id] = peer
 
     try:
         # Primeira mensagem esperada do cliente: as preferências de matchmaking.
         raw = await websocket.receive_text()
+        peer.last_seen = time.monotonic()
         data = json.loads(raw)
         if data.get("type") == "join":
             peer.set_preferences(data.get("mode"), data.get("country"), data.get("interests", []))
@@ -157,6 +190,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         while True:
             raw = await websocket.receive_text()
+            peer.last_seen = time.monotonic()
             try:
                 data = json.loads(raw)
             except json.JSONDecodeError:
@@ -189,6 +223,7 @@ async def websocket_endpoint(websocket: WebSocket):
         pass
     finally:
         active_peers.discard(peer.id)
+        peer_registry.pop(peer.id, None)
         await matchmaker.disconnect(peer)
         logger.info(f"Peer {peer.id} desconectado")
 
