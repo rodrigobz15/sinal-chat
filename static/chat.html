@@ -178,14 +178,12 @@
 
   .controls{
     display:flex;
-    flex-wrap: wrap;
     gap: 8px;
-    width: 100%;
+    flex-shrink: 0;
   }
 
   .controls button{
-    flex: 1;
-    padding: 10px 8px;
+    padding: 12px 16px;
     font-size: 13px;
     white-space: nowrap;
   }
@@ -269,11 +267,24 @@
     font-weight: 700;
   }
 
-  .chat-input-row{
+  .bottom-bar{
+    display:flex;
+    align-items:center;
+    gap: 16px;
+    padding: 14px 18px;
     border-top: 1px solid var(--line);
-    padding: 14px 16px;
+    background: var(--bg);
+  }
+
+  @media (max-width: 640px){
+    .bottom-bar{ flex-wrap: wrap; }
+  }
+
+  .chat-input-row{
+    flex:1;
     display:flex;
     gap: 10px;
+    min-width: 200px;
   }
 
   .chat-input-row input{
@@ -294,10 +305,10 @@
   ::-webkit-scrollbar-thumb{ background: var(--line); border-radius:4px; }
 
   /* Modo somente texto: some só com o grid de vídeo, mantém os controles */
-  body.text-mode .video-grid{ display:none; }
-  body.text-mode .video-stage{ max-width: 720px; margin: 0 auto; width:100%; }
+  body.text-mode .video-stage{ display:none; }
   body.text-mode main{ grid-template-columns: 1fr; }
   body.text-mode .chat-panel{ max-width: 720px; margin: 0 auto; width:100%; }
+  body.text-mode .bottom-bar{ max-width: 720px; margin: 0 auto; width:100%; }
 
   .back-link{
     font-size: 13px;
@@ -341,21 +352,24 @@
         <span class="video-label" id="remoteLabel" style="display:none;">estranho</span>
       </div>
     </div>
-    <div class="controls">
-      <button class="primary" id="startBtn">começar</button>
-      <button class="next" id="nextBtn" disabled>próximo →</button>
-      <button id="stopBtn" disabled>parar</button>
-    </div>
   </div>
 
   <div class="chat-panel">
     <div class="chat-log" id="chatLog"></div>
-    <div class="chat-input-row">
-      <input type="text" id="chatInput" placeholder="diga oi..." disabled>
-      <button class="primary" id="sendBtn" disabled>enviar</button>
-    </div>
   </div>
 </main>
+
+<div class="bottom-bar">
+  <div class="controls">
+    <button class="primary" id="startBtn">começar</button>
+    <button class="next" id="nextBtn" disabled>próximo →</button>
+    <button id="stopBtn" disabled>parar</button>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" id="chatInput" placeholder="diga oi..." disabled>
+    <button class="primary" id="sendBtn" disabled>enviar</button>
+  </div>
+</div>
 
 <script>
 const statusDot = document.getElementById('statusDot');
