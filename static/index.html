@@ -4,36 +4,39 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>2isPair — converse com estranhos ao vivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #0b0d10;
-    --panel: #12161b;
-    --panel-2: #171c22;
-    --line: #1f262e;
-    --text: #e7ecf0;
-    --dim: #7a8794;
-    --accent: #5eead4;
-    --accent-2: #a78bfa;
-    --mono: 'IBM Plex Mono', 'Courier New', monospace;
+    --bg: #14151c;
+    --panel: #1b1d27;
+    --panel-2: #22242f;
+    --line: #2b2e3b;
+    --text: #eef0f4;
+    --dim: #8a90a3;
+    --accent-a: #7c9bf7;   /* você */
+    --accent-b: #f5936f;   /* estranho */
+    --display: 'Fraunces', Georgia, serif;
     --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   body[data-theme="light"]{
-    --bg: #f7f8fa;
+    --bg: #f6f5f1;
     --panel: #ffffff;
-    --panel-2: #f0f2f5;
-    --line: #e2e6ea;
-    --text: #14181c;
-    --dim: #6b7680;
+    --panel-2: #f0eee7;
+    --line: #e6e2d8;
+    --text: #22232c;
+    --dim: #85806f;
   }
 
   .theme-toggle{
     background: var(--panel);
     border: 1px solid var(--line);
     color: var(--text);
-    border-radius: 8px;
-    padding: 7px 10px;
-    font-size: 13px;
+    border-radius: 999px;
+    width: 34px; height: 34px;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 14px;
     cursor: pointer;
   }
   .theme-toggle:hover{ border-color: var(--dim); }
@@ -49,7 +52,7 @@
   }
 
   header{
-    padding: 22px 28px;
+    padding: 20px 28px;
     display:flex;
     align-items:center;
     justify-content:space-between;
@@ -57,14 +60,16 @@
   }
 
   .brand{
-    font-family: var(--mono);
-    font-size: 16px;
-    letter-spacing: 0.08em;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 19px;
   }
+  .brand .two{ color: var(--accent-a); }
+  .brand .pair{ color: var(--accent-b); }
 
   .online-pill{
-    font-family: var(--mono);
     font-size: 12px;
+    font-weight: 500;
     color: var(--dim);
     display:flex;
     align-items:center;
@@ -76,8 +81,8 @@
 
   .online-pill .dot{
     width:7px; height:7px; border-radius:50%;
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent);
+    background: var(--accent-a);
+    box-shadow: 0 0 8px var(--accent-a);
     animation: pulse 1.6s infinite;
   }
 
@@ -89,53 +94,59 @@
   main{
     max-width: 920px;
     margin: 0 auto;
-    padding: 64px 24px 40px;
+    padding: 72px 24px 40px;
     display:flex;
     flex-direction:column;
     align-items:center;
     text-align:center;
   }
 
-  /* ---- Sinal de radar: elemento assinatura da página ---- */
-  .radar{
+  /* ---- Assinatura: dois círculos que se encontram — o "2is" + "Pair" ---- */
+  .pair-orbit{
     position:relative;
-    width: 160px;
-    height: 160px;
-    margin-bottom: 28px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    width: 180px;
+    height: 110px;
+    margin-bottom: 32px;
   }
-  .radar-ring{
+  .pair-orbit .circle{
     position:absolute;
-    border-radius:50%;
-    border: 1px solid var(--accent);
-    opacity: 0;
-    animation: radar-ping 3s ease-out infinite;
+    top: 15px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    opacity: 0.88;
   }
-  .radar-ring:nth-child(1){ width:40px; height:40px; animation-delay: 0s; }
-  .radar-ring:nth-child(2){ width:40px; height:40px; animation-delay: 1s; }
-  .radar-ring:nth-child(3){ width:40px; height:40px; animation-delay: 2s; }
-  .radar-core{
-    width: 14px; height:14px; border-radius:50%;
-    background: var(--accent);
-    box-shadow: 0 0 20px var(--accent);
-    z-index:1;
+  .pair-orbit .circle-a{
+    left: 22px;
+    background: var(--accent-a);
+    animation: drift-a 4.5s ease-in-out infinite;
   }
-  @keyframes radar-ping{
-    0%{ width:40px; height:40px; opacity:0.9; }
-    100%{ width:160px; height:160px; opacity:0; }
+  .pair-orbit .circle-b{
+    right: 22px;
+    background: var(--accent-b);
+    animation: drift-b 4.5s ease-in-out infinite;
+  }
+  @keyframes drift-a{
+    0%,100%{ transform: translateX(0); }
+    50%{ transform: translateX(28px); }
+  }
+  @keyframes drift-b{
+    0%,100%{ transform: translateX(0); }
+    50%{ transform: translateX(-28px); }
   }
   @media (prefers-reduced-motion: reduce){
-    .radar-ring{ animation: none; opacity:0.15; width:160px; height:160px; }
+    .pair-orbit .circle-a{ animation:none; transform: translateX(14px); }
+    .pair-orbit .circle-b{ animation:none; transform: translateX(-14px); }
     .online-pill .dot{ animation:none; }
   }
 
   h1{
-    font-family: var(--mono);
-    font-size: clamp(28px, 5vw, 42px);
+    font-family: var(--display);
+    font-weight: 600;
+    font-style: italic;
+    font-size: clamp(30px, 5vw, 44px);
     letter-spacing: -0.01em;
-    margin: 0 0 12px;
+    margin: 0 0 14px;
   }
 
   .subtitle{
@@ -143,17 +154,18 @@
     font-size: 16px;
     max-width: 480px;
     margin: 0 0 40px;
-    line-height:1.5;
+    line-height:1.55;
   }
 
   .panel{
     background: var(--panel);
     border: 1px solid var(--line);
-    border-radius: 14px;
+    border-radius: 18px;
     padding: 28px;
     width: 100%;
     max-width: 480px;
     text-align:left;
+    box-shadow: 0 12px 32px -16px rgba(0,0,0,0.25);
   }
 
   .field{
@@ -163,10 +175,8 @@
 
   .field label{
     display:block;
-    font-family: var(--mono);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-size: 12px;
+    font-weight: 600;
     color: var(--dim);
     margin-bottom: 9px;
   }
@@ -178,7 +188,7 @@
   .mode-btn{
     flex:1;
     padding: 12px;
-    border-radius: 8px;
+    border-radius: 10px;
     border: 1px solid var(--line);
     background: var(--panel-2);
     color: var(--text);
@@ -189,22 +199,22 @@
     transition: border-color .15s, background .15s;
   }
   .mode-btn.active{
-    border-color: var(--accent);
-    background: rgba(94,234,212,0.08);
-    color: var(--accent);
+    border-color: var(--accent-a);
+    background: color-mix(in srgb, var(--accent-a) 12%, transparent);
+    color: var(--accent-a);
   }
 
   select, input[type=text]{
     width:100%;
     background: var(--panel-2);
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 12px 14px;
     color: var(--text);
     font-family: var(--sans);
     font-size: 14px;
   }
-  select:focus, input[type=text]:focus{ outline:none; border-color: var(--accent); }
+  select:focus, input[type=text]:focus{ outline:none; border-color: var(--accent-a); }
 
   .hint{
     font-size: 12px;
@@ -217,10 +227,10 @@
     width:100%;
     margin-top: 26px;
     padding: 15px;
-    border-radius: 8px;
+    border-radius: 10px;
     border:none;
-    background: var(--accent);
-    color: #0b0d10;
+    background: var(--accent-a);
+    color: #14151c;
     font-family: var(--sans);
     font-weight: 700;
     font-size: 15px;
@@ -231,7 +241,6 @@
   .start-btn:active{ transform: scale(0.98); }
 
   .disclaimer{
-    font-family: var(--mono);
     font-size: 11px;
     color: var(--dim);
     margin-top: 18px;
@@ -247,12 +256,12 @@
     color: var(--dim);
   }
   .premium-badge{
-    font-family: var(--mono);
     font-size: 10px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--accent-2);
-    border: 1px solid rgba(167,139,250,0.4);
+    color: var(--accent-b);
+    border: 1px solid color-mix(in srgb, var(--accent-b) 40%, transparent);
     padding: 3px 9px;
     border-radius: 999px;
   }
@@ -260,8 +269,7 @@
   footer{
     text-align:center;
     padding: 30px 24px 40px;
-    font-family: var(--mono);
-    font-size: 11px;
+    font-size: 12px;
     color: var(--dim);
   }
 </style>
@@ -269,7 +277,7 @@
 <body>
 
 <header>
-  <div class="brand">2isPair</div>
+  <div class="brand"><span class="two">2is</span><span class="pair">Pair</span></div>
   <div style="display:flex; align-items:center; gap:12px;">
     <div class="online-pill"><span class="dot"></span><span id="onlineCount">—</span> online agora</div>
     <button class="theme-toggle" id="themeToggle" title="Alternar tema">☀️</button>
@@ -277,11 +285,9 @@
 </header>
 
 <main>
-  <div class="radar">
-    <div class="radar-ring"></div>
-    <div class="radar-ring"></div>
-    <div class="radar-ring"></div>
-    <div class="radar-core"></div>
+  <div class="pair-orbit">
+    <div class="circle circle-a"></div>
+    <div class="circle circle-b"></div>
   </div>
 
   <h1>converse com um estranho</h1>
