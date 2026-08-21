@@ -5,29 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>2isPair — converse com um estranho</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #14151c;
-    --panel: #1b1d27;
-    --panel-2: #22242f;
-    --line: #2b2e3b;
-    --text: #eef0f4;
-    --dim: #8a90a3;
-    --accent-a: #7c9bf7;   /* você */
-    --accent-b: #f5936f;   /* estranho */
-    --danger: #f2755f;
-    --display: 'Fraunces', Georgia, serif;
-    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --bg: #fbf9ff;
+    --panel: #ffffff;
+    --panel-2: #f4f0fc;
+    --line: #ece5fa;
+    --text: #332f45;
+    --dim: #8b84a0;
+    --accent-a: #8b6cf7;   /* você — roxo */
+    --accent-a-soft: #ece5fd;
+    --accent-b: #ff9d72;   /* estranho — pêssego */
+    --accent-b-soft: #ffe9dd;
+    --display: 'Fredoka', 'Nunito', sans-serif;
+    --sans: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    --radius: 20px;
   }
 
-  body[data-theme="light"]{
-    --bg: #f6f5f1;
-    --panel: #ffffff;
-    --panel-2: #f0eee7;
-    --line: #e6e2d8;
-    --text: #22232c;
-    --dim: #85806f;
+  body[data-theme="dark"]{
+    --bg: #221f30;
+    --panel: #2b2740;
+    --panel-2: #332e4a;
+    --line: #423b5c;
+    --text: #f1eefa;
+    --dim: #a79fc2;
+    --accent-a-soft: #3a3355;
+    --accent-b-soft: #4a3a3c;
   }
 
   .theme-toggle{
@@ -40,7 +44,7 @@
     font-size: 14px;
     cursor: pointer;
   }
-  .theme-toggle:hover{ border-color: var(--dim); }
+  .theme-toggle:hover{ border-color: var(--accent-a); }
 
   * { box-sizing: border-box; }
 
@@ -55,7 +59,7 @@
   }
 
   header{
-    padding: 16px 24px;
+    padding: 14px 22px;
     border-bottom: 1px solid var(--line);
     display:flex;
     align-items:center;
@@ -63,12 +67,19 @@
   }
 
   .brand{
-    font-family: var(--display);
-    font-weight: 700;
-    font-size: 19px;
     display:flex;
     align-items:center;
-    gap:10px;
+    gap:9px;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 17px;
+  }
+  .brand-mark{
+    width: 28px; height: 28px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
   }
   .brand .two{ color: var(--accent-a); }
   .brand .pair{ color: var(--accent-b); }
@@ -80,7 +91,7 @@
     flex-shrink:0;
   }
   .dot.searching{ background: var(--accent-b); box-shadow: 0 0 10px var(--accent-b); animation: pulse 1.2s infinite; }
-  .dot.connected{ background: var(--accent-a); box-shadow: 0 0 10px var(--accent-a); }
+  .dot.connected{ background: #6bcf7f; box-shadow: 0 0 10px #6bcf7f; }
 
   @keyframes pulse{
     0%,100%{ opacity:1; transform:scale(1); }
@@ -90,7 +101,7 @@
   .status-text{
     font-size: 12px;
     color: var(--dim);
-    font-weight: 500;
+    font-weight: 700;
   }
 
   main{
@@ -108,33 +119,37 @@
 
   .video-stage{
     background: var(--bg);
-    padding: 20px;
+    padding: 16px;
     display:flex;
     flex-direction:column;
-    gap: 14px;
-    min-height:0;
     align-items:center;
+    justify-content:center;
+    gap: 12px;
+    min-height:0;
+    flex: 1;
   }
 
   .video-grid{
-    width: 100%;
-    max-width: 560px;
     display:flex;
     flex-direction:column;
-    gap: 12px;
+    gap: 10px;
+    min-height:0;
+    align-items:center;
   }
 
   .video-box{
     position:relative;
     background: var(--panel);
     border: 1px solid var(--line);
-    border-radius: 14px;
+    border-radius: var(--radius);
     overflow:hidden;
     display:flex;
     align-items:center;
     justify-content:center;
-    aspect-ratio: 16 / 10;
-    box-shadow: 0 8px 24px -12px rgba(0,0,0,0.35);
+    width: 100%;
+    max-width: 420px;
+    aspect-ratio: 4 / 3;
+    box-shadow: 0 10px 26px -16px rgba(139,108,247,0.3);
   }
 
   video{
@@ -149,17 +164,17 @@
     bottom: 10px;
     left: 10px;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     color: #fff;
     background: rgba(0,0,0,0.45);
-    padding: 3px 9px;
+    padding: 4px 10px;
     border-radius: 999px;
-    letter-spacing: 0.02em;
   }
 
   .placeholder{
     color: var(--dim);
     font-size: 13px;
+    font-weight: 600;
     text-align:center;
     padding: 20px;
   }
@@ -167,35 +182,35 @@
   .controls{
     display:flex;
     gap: 10px;
-    width:100%;
-    max-width: 560px;
+    width: 100%;
+    max-width: 420px;
   }
 
   button{
     font-family: var(--sans);
-    font-weight: 600;
+    font-weight: 700;
     font-size: 14px;
     padding: 12px 20px;
-    border-radius: 10px;
-    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    border: 2px solid var(--line);
     background: var(--panel);
     color: var(--text);
     cursor:pointer;
     transition: border-color .15s, transform .1s, filter .15s;
   }
-  button:hover{ border-color: var(--dim); }
+  button:hover{ border-color: var(--accent-a); }
   button:active{ transform: scale(0.97); }
 
   button.primary{
     background: var(--accent-a);
-    color: #14151c;
+    color: #fff;
     border-color: var(--accent-a);
   }
   button.primary:hover{ filter: brightness(1.08); }
 
   button.next{
     background: var(--accent-b);
-    color: #14151c;
+    color: #fff;
     border-color: var(--accent-b);
   }
 
@@ -214,7 +229,7 @@
   .chat-log{
     flex:1;
     overflow-y:auto;
-    padding: 20px;
+    padding: 18px;
     display:flex;
     flex-direction:column;
     gap: 10px;
@@ -222,15 +237,16 @@
 
   .msg{
     font-size: 14px;
+    font-weight: 600;
     line-height: 1.45;
     max-width: 85%;
     padding: 10px 14px;
-    border-radius: 14px;
+    border-radius: 16px;
   }
   .msg.me{
     align-self:flex-end;
     background: var(--accent-a);
-    color: #14151c;
+    color: #fff;
     border: none;
   }
   .msg.stranger{
@@ -246,6 +262,7 @@
     border:none;
     padding: 4px;
     text-align: center;
+    font-weight: 700;
   }
 
   .chat-input-row{
@@ -258,11 +275,12 @@
   .chat-input-row input{
     flex:1;
     background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 10px;
+    border: 2px solid var(--line);
+    border-radius: var(--radius);
     padding: 12px 14px;
     color: var(--text);
     font-family: var(--sans);
+    font-weight: 600;
     font-size: 14px;
   }
   .chat-input-row input:focus{ outline:none; border-color: var(--accent-a); }
@@ -279,23 +297,29 @@
 
   .back-link{
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 700;
     color: var(--dim);
     text-decoration:none;
   }
-  .back-link:hover{ color: var(--text); }
+  .back-link:hover{ color: var(--accent-a); }
 </style>
 </head>
 <body>
 
 <header>
   <div class="brand">
+    <div class="brand-mark">
+      <svg width="16" height="16" viewBox="0 0 20 20">
+        <circle cx="8" cy="10" r="5" fill="#fff" opacity="0.95"/>
+        <circle cx="13" cy="10" r="5" fill="#fff" opacity="0.6"/>
+      </svg>
+    </div>
     <span class="dot" id="statusDot"></span>
     <span class="two">2is</span><span class="pair">Pair</span>
   </div>
   <div style="display:flex; align-items:center; gap:14px;">
     <div class="status-text" id="statusText">desconectado</div>
-    <button class="theme-toggle" id="themeToggle" title="Alternar tema">☀️</button>
+    <button class="theme-toggle" id="themeToggle" title="Alternar tema">🌙</button>
     <a class="back-link" href="/" id="leaveLink">← sair</a>
   </div>
 </header>
@@ -611,12 +635,12 @@ document.getElementById('leaveLink').addEventListener('click', (e) => {
   setTimeout(() => { location.href = '/'; }, 150);
 });
 
-// Tema claro/escuro, salvo pro navegador lembrar na próxima visita
+// Tema claro/escuro — claro é o padrão agora
 function applyTheme(theme) {
   document.body.setAttribute('data-theme', theme);
-  document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+  document.getElementById('themeToggle').textContent = theme === 'light' ? '🌙' : '☀️';
 }
-applyTheme(localStorage.getItem('theme') || 'dark');
+applyTheme(localStorage.getItem('theme') || 'light');
 document.getElementById('themeToggle').addEventListener('click', () => {
   const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
   localStorage.setItem('theme', next);

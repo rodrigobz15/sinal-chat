@@ -5,41 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>2isPair — converse com estranhos ao vivo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #14151c;
-    --panel: #1b1d27;
-    --panel-2: #22242f;
-    --line: #2b2e3b;
-    --text: #eef0f4;
-    --dim: #8a90a3;
-    --accent-a: #7c9bf7;   /* você */
-    --accent-b: #f5936f;   /* estranho */
-    --display: 'Fraunces', Georgia, serif;
-    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  }
-
-  body[data-theme="light"]{
-    --bg: #f6f5f1;
+    --bg: #fbf9ff;
     --panel: #ffffff;
-    --panel-2: #f0eee7;
-    --line: #e6e2d8;
-    --text: #22232c;
-    --dim: #85806f;
+    --panel-2: #f4f0fc;
+    --line: #ece5fa;
+    --text: #332f45;
+    --dim: #8b84a0;
+    --accent-a: #8b6cf7;     /* você — roxo */
+    --accent-a-soft: #ece5fd;
+    --accent-b: #ff9d72;     /* estranho — pêssego */
+    --accent-b-soft: #ffe9dd;
+    --display: 'Fredoka', 'Nunito', sans-serif;
+    --sans: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    --radius: 20px;
   }
 
-  .theme-toggle{
-    background: var(--panel);
-    border: 1px solid var(--line);
-    color: var(--text);
-    border-radius: 999px;
-    width: 34px; height: 34px;
-    display:flex; align-items:center; justify-content:center;
-    font-size: 14px;
-    cursor: pointer;
+  body[data-theme="dark"]{
+    --bg: #221f30;
+    --panel: #2b2740;
+    --panel-2: #332e4a;
+    --line: #423b5c;
+    --text: #f1eefa;
+    --dim: #a79fc2;
+    --accent-a-soft: #3a3355;
+    --accent-b-soft: #4a3a3c;
   }
-  .theme-toggle:hover{ border-color: var(--dim); }
 
   * { box-sizing: border-box; }
 
@@ -49,7 +42,31 @@
     color: var(--text);
     font-family: var(--sans);
     min-height:100vh;
+    overflow-x: hidden;
+    position: relative;
   }
+
+  /* Blobs orgânicos decorativos, bem sutis, deixam o fundo menos "vazio" */
+  .blob{
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(50px);
+    opacity: 0.5;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .blob-a{
+    width: 380px; height: 380px;
+    top: -140px; right: -120px;
+    background: var(--accent-a-soft);
+  }
+  .blob-b{
+    width: 300px; height: 300px;
+    bottom: -100px; left: -100px;
+    background: var(--accent-b-soft);
+  }
+
+  header, main, footer{ position: relative; z-index: 1; }
 
   header{
     padding: 20px 28px;
@@ -60,29 +77,57 @@
   }
 
   .brand{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+  }
+
+  .brand-mark{
+    width: 34px; height: 34px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .brand-mark svg{ display:block; }
+
+  .brand-name{
     font-family: var(--display);
-    font-weight: 700;
+    font-weight: 600;
     font-size: 19px;
   }
-  .brand .two{ color: var(--accent-a); }
-  .brand .pair{ color: var(--accent-b); }
+  .brand-name .two{ color: var(--accent-a); }
+  .brand-name .pair{ color: var(--accent-b); }
+
+  .theme-toggle{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 999px;
+    width: 36px; height: 36px;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .theme-toggle:hover{ border-color: var(--accent-a); }
 
   .online-pill{
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 700;
     color: var(--dim);
     display:flex;
     align-items:center;
     gap:7px;
+    background: var(--panel);
     border: 1px solid var(--line);
-    padding: 6px 12px;
+    padding: 7px 14px;
     border-radius: 999px;
   }
 
   .online-pill .dot{
     width:7px; height:7px; border-radius:50%;
-    background: var(--accent-a);
-    box-shadow: 0 0 8px var(--accent-a);
+    background: #6bcf7f;
+    box-shadow: 0 0 8px #6bcf7f;
     animation: pulse 1.6s infinite;
   }
 
@@ -92,58 +137,62 @@
   }
 
   main{
-    max-width: 920px;
+    max-width: 960px;
     margin: 0 auto;
-    padding: 72px 24px 40px;
+    padding: 60px 24px 40px;
     display:flex;
     flex-direction:column;
     align-items:center;
     text-align:center;
   }
 
-  /* ---- Assinatura: dois círculos que se encontram — o "2is" + "Pair" ---- */
-  .pair-orbit{
+  /* ---- Assinatura: duas bolhas fofas que se cutucam ---- */
+  .pair-hero{
     position:relative;
     width: 180px;
-    height: 110px;
-    margin-bottom: 32px;
+    height: 100px;
+    margin-bottom: 20px;
   }
-  .pair-orbit .circle{
+  .pair-hero .blob-char{
     position:absolute;
-    top: 15px;
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    opacity: 0.88;
+    top: 10px;
+    width: 78px;
+    height: 78px;
+    border-radius: 50% 50% 46% 54% / 54% 46% 54% 46%;
   }
-  .pair-orbit .circle-a{
-    left: 22px;
+  .pair-hero .blob-a{
+    left: 24px;
     background: var(--accent-a);
-    animation: drift-a 4.5s ease-in-out infinite;
+    filter: none;
+    opacity: 1;
+    position: absolute;
+    animation: bump-a 2.6s cubic-bezier(.34,1.56,.64,1) infinite;
   }
-  .pair-orbit .circle-b{
-    right: 22px;
+  .pair-hero .blob-b{
+    right: 24px;
     background: var(--accent-b);
-    animation: drift-b 4.5s ease-in-out infinite;
+    filter: none;
+    opacity: 1;
+    position: absolute;
+    animation: bump-b 2.6s cubic-bezier(.34,1.56,.64,1) infinite;
   }
-  @keyframes drift-a{
-    0%,100%{ transform: translateX(0); }
-    50%{ transform: translateX(28px); }
+  @keyframes bump-a{
+    0%, 100%{ transform: translateX(0) rotate(0deg); }
+    50%{ transform: translateX(22px) rotate(6deg); }
   }
-  @keyframes drift-b{
-    0%,100%{ transform: translateX(0); }
-    50%{ transform: translateX(-28px); }
+  @keyframes bump-b{
+    0%, 100%{ transform: translateX(0) rotate(0deg); }
+    50%{ transform: translateX(-22px) rotate(-6deg); }
   }
   @media (prefers-reduced-motion: reduce){
-    .pair-orbit .circle-a{ animation:none; transform: translateX(14px); }
-    .pair-orbit .circle-b{ animation:none; transform: translateX(-14px); }
+    .pair-hero .blob-a{ animation:none; transform: translateX(11px); }
+    .pair-hero .blob-b{ animation:none; transform: translateX(-11px); }
     .online-pill .dot{ animation:none; }
   }
 
   h1{
     font-family: var(--display);
     font-weight: 600;
-    font-style: italic;
     font-size: clamp(30px, 5vw, 44px);
     letter-spacing: -0.01em;
     margin: 0 0 14px;
@@ -153,19 +202,20 @@
     color: var(--dim);
     font-size: 16px;
     max-width: 480px;
-    margin: 0 0 40px;
-    line-height:1.55;
+    margin: 0 0 36px;
+    line-height:1.6;
+    font-weight: 600;
   }
 
   .panel{
     background: var(--panel);
     border: 1px solid var(--line);
-    border-radius: 18px;
+    border-radius: 26px;
     padding: 28px;
     width: 100%;
     max-width: 480px;
     text-align:left;
-    box-shadow: 0 12px 32px -16px rgba(0,0,0,0.25);
+    box-shadow: 0 16px 40px -20px rgba(139,108,247,0.25);
   }
 
   .field{
@@ -175,9 +225,9 @@
 
   .field label{
     display:block;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--dim);
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text);
     margin-bottom: 9px;
   }
 
@@ -188,30 +238,31 @@
   .mode-btn{
     flex:1;
     padding: 12px;
-    border-radius: 10px;
-    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    border: 2px solid var(--line);
     background: var(--panel-2);
     color: var(--text);
     font-family: var(--sans);
-    font-weight: 600;
+    font-weight: 700;
     font-size: 14px;
     cursor:pointer;
     transition: border-color .15s, background .15s;
   }
   .mode-btn.active{
     border-color: var(--accent-a);
-    background: color-mix(in srgb, var(--accent-a) 12%, transparent);
+    background: var(--accent-a-soft);
     color: var(--accent-a);
   }
 
   select, input[type=text]{
     width:100%;
     background: var(--panel-2);
-    border: 1px solid var(--line);
-    border-radius: 10px;
+    border: 2px solid var(--line);
+    border-radius: var(--radius);
     padding: 12px 14px;
     color: var(--text);
     font-family: var(--sans);
+    font-weight: 600;
     font-size: 14px;
   }
   select:focus, input[type=text]:focus{ outline:none; border-color: var(--accent-a); }
@@ -221,73 +272,157 @@
     color: var(--dim);
     margin-top: 7px;
     line-height:1.4;
+    font-weight: 600;
   }
 
   .start-btn{
     width:100%;
-    margin-top: 26px;
-    padding: 15px;
-    border-radius: 10px;
+    margin-top: 24px;
+    padding: 16px;
+    border-radius: var(--radius);
     border:none;
-    background: var(--accent-a);
-    color: #14151c;
-    font-family: var(--sans);
-    font-weight: 700;
-    font-size: 15px;
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    color: #fff;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 16px;
     cursor:pointer;
     transition: filter .15s, transform .1s;
   }
-  .start-btn:hover{ filter: brightness(1.08); }
+  .start-btn:hover{ filter: brightness(1.06); }
   .start-btn:active{ transform: scale(0.98); }
 
   .disclaimer{
     font-size: 11px;
     color: var(--dim);
-    margin-top: 18px;
+    margin-top: 16px;
     line-height:1.5;
+    font-weight: 600;
   }
 
-  .premium-teaser{
-    margin-top: 36px;
-    display:flex;
-    align-items:center;
-    gap: 10px;
-    font-size: 13px;
-    color: var(--dim);
+  /* Cartões de valor */
+  .value-grid{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    width: 100%;
+    max-width: 860px;
+    margin-top: 52px;
   }
-  .premium-badge{
-    font-size: 10px;
+  @media (max-width: 720px){
+    .value-grid{ grid-template-columns: repeat(2, 1fr); }
+  }
+  .value-card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 16px;
+    text-align:center;
+  }
+  .value-icon{
+    width: 42px; height: 42px;
+    border-radius: 13px;
+    background: var(--accent-a-soft);
+    display:flex; align-items:center; justify-content:center;
+    font-size: 19px;
+    margin: 0 auto 12px;
+  }
+  .value-card h3{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0 0 6px;
+  }
+  .value-card p{
+    font-size: 12.5px;
+    color: var(--dim);
+    line-height:1.5;
+    margin:0;
+    font-weight: 600;
+  }
+
+  /* FAQ */
+  .faq{
+    width: 100%;
+    max-width: 700px;
+    margin-top: 56px;
+    text-align:left;
+  }
+  .faq h2{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 22px;
+    text-align:center;
+    margin: 0 0 20px;
+  }
+  .faq-item{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    margin-bottom: 10px;
+    overflow:hidden;
+  }
+  .faq-q{
+    padding: 16px 20px;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--accent-b);
-    border: 1px solid color-mix(in srgb, var(--accent-b) 40%, transparent);
-    padding: 3px 9px;
-    border-radius: 999px;
+    font-size: 14.5px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    cursor:pointer;
+    user-select:none;
+  }
+  .faq-q .plus{ color: var(--accent-a); font-size: 18px; transition: transform .2s; }
+  .faq-item.open .faq-q .plus{ transform: rotate(45deg); }
+  .faq-a{
+    max-height:0;
+    overflow:hidden;
+    transition: max-height .25s ease, padding .25s ease;
+    padding: 0 20px;
+    font-size: 13.5px;
+    color: var(--dim);
+    line-height:1.6;
+    font-weight: 600;
+  }
+  .faq-item.open .faq-a{
+    max-height: 200px;
+    padding: 0 20px 16px;
   }
 
   footer{
     text-align:center;
-    padding: 30px 24px 40px;
+    padding: 36px 24px 40px;
     font-size: 12px;
     color: var(--dim);
+    font-weight: 600;
   }
 </style>
 </head>
 <body>
 
+<div class="blob blob-a"></div>
+<div class="blob blob-b"></div>
+
 <header>
-  <div class="brand"><span class="two">2is</span><span class="pair">Pair</span></div>
+  <div class="brand">
+    <div class="brand-mark">
+      <svg width="20" height="20" viewBox="0 0 20 20">
+        <circle cx="8" cy="10" r="5" fill="#fff" opacity="0.95"/>
+        <circle cx="13" cy="10" r="5" fill="#fff" opacity="0.6"/>
+      </svg>
+    </div>
+    <div class="brand-name"><span class="two">2is</span><span class="pair">Pair</span></div>
+  </div>
   <div style="display:flex; align-items:center; gap:12px;">
     <div class="online-pill"><span class="dot"></span><span id="onlineCount">—</span> online agora</div>
-    <button class="theme-toggle" id="themeToggle" title="Alternar tema">☀️</button>
+    <button class="theme-toggle" id="themeToggle" title="Alternar tema">🌙</button>
   </div>
 </header>
 
 <main>
-  <div class="pair-orbit">
-    <div class="circle circle-a"></div>
-    <div class="circle circle-b"></div>
+  <div class="pair-hero">
+    <div class="blob-char blob-a"></div>
+    <div class="blob-char blob-b"></div>
   </div>
 
   <h1>converse com um estranho</h1>
@@ -330,9 +465,47 @@
     <div class="disclaimer">Ao continuar você concorda em manter a conversa respeitosa. Conversas não são gravadas pelo servidor.</div>
   </div>
 
-  <div class="premium-teaser">
-    <span class="premium-badge">em breve</span>
-    <span>assinatura premium: escolha de país garantida, sem anúncios, prioridade na fila.</span>
+  <div class="value-grid">
+    <div class="value-card">
+      <div class="value-icon">🎯</div>
+      <h3>Por interesse</h3>
+      <p>Liste temas e a gente prioriza gente parecida com você.</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">🙈</div>
+      <h3>Sem cadastro</h3>
+      <p>Nada de conta, email ou senha. Só entrar e conversar.</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">💬</div>
+      <h3>Texto ou vídeo</h3>
+      <p>Você escolhe como quer papear, do jeito que preferir.</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">💚</div>
+      <h3>100% grátis</h3>
+      <p>Sem mensalidade escondida nem cobrança por hora de uso.</p>
+    </div>
+  </div>
+
+  <div class="faq">
+    <h2>Perguntas frequentes</h2>
+    <div class="faq-item">
+      <div class="faq-q"><span>Como funciona o pareamento por interesse?</span><span class="plus">+</span></div>
+      <div class="faq-a">Você digita os temas que quiser (ex: games, música) e a gente tenta te conectar com alguém que listou algo parecido. Se ninguém compatível estiver por perto, você é pareado com a próxima pessoa disponível mesmo assim — ninguém fica esperando pra sempre.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q"><span>Preciso me cadastrar?</span><span class="plus">+</span></div>
+      <div class="faq-a">Não. É só escolher texto ou vídeo e clicar em começar. Nenhum dado pessoal é pedido.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q"><span>Funciona no celular?</span><span class="plus">+</span></div>
+      <div class="faq-a">Sim, funciona direto no navegador do celular, sem precisar instalar nada.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q"><span>É seguro conversar com estranhos aqui?</span><span class="plus">+</span></div>
+      <div class="faq-a">Isso ainda é um projeto pessoal em construção, sem moderação automática por trás. Use o bom senso: nunca compartilhe dados pessoais, e saia da conversa (botão "próximo") se algo parecer errado.</div>
+    </div>
   </div>
 </main>
 
@@ -370,12 +543,21 @@ async function updateOnlineCount() {
 updateOnlineCount();
 setInterval(updateOnlineCount, 10000);
 
-// Tema claro/escuro, salvo pro navegador lembrar na próxima visita
+// FAQ accordion
+document.querySelectorAll('.faq-item').forEach(item => {
+  item.querySelector('.faq-q').addEventListener('click', () => {
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+  });
+});
+
+// Tema claro/escuro — claro é o padrão agora (mais "fofo" e acolhedor)
 function applyTheme(theme) {
   document.body.setAttribute('data-theme', theme);
-  document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+  document.getElementById('themeToggle').textContent = theme === 'light' ? '🌙' : '☀️';
 }
-applyTheme(localStorage.getItem('theme') || 'dark');
+applyTheme(localStorage.getItem('theme') || 'light');
 document.getElementById('themeToggle').addEventListener('click', () => {
   const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
   localStorage.setItem('theme', next);
