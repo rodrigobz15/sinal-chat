@@ -172,6 +172,25 @@
     border-radius: 999px;
   }
 
+  .flip-btn{
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,0,0,0.45);
+    color: #fff;
+    font-size: 15px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor: pointer;
+  }
+  .flip-btn:hover{ background: rgba(0,0,0,0.65); border-color: transparent; }
+
   .placeholder{
     color: var(--dim);
     font-size: 13px;
@@ -313,6 +332,7 @@
   body.text-mode main{ grid-template-columns: 1fr; }
   body.text-mode .chat-panel{ max-width: 720px; margin: 0 auto; width:100%; }
   body.text-mode .bottom-bar{ max-width: 720px; margin: 0 auto; width:100%; }
+  body.text-mode #screenBtn{ display:none; }
 
   .back-link{
     font-size: 13px;
@@ -349,6 +369,7 @@
       <div class="video-box">
         <video id="localVideo" autoplay muted playsinline></video>
         <span class="video-label">você</span>
+        <button class="flip-btn" id="flipBtn" title="Trocar câmera">🔄</button>
       </div>
       <div class="video-box">
         <video id="remoteVideo" autoplay playsinline></video>
@@ -367,6 +388,7 @@
   <div class="controls">
     <button class="primary" id="startBtn">começar</button>
     <button class="next" id="nextBtn" disabled>próximo →</button>
+    <button id="screenBtn" disabled title="Compartilhar sua tela">🖥️</button>
     <button id="stopBtn" disabled>parar</button>
   </div>
   <div class="chat-input-row">
@@ -385,6 +407,8 @@ const remoteLabel = document.getElementById('remoteLabel');
 const startBtn = document.getElementById('startBtn');
 const nextBtn = document.getElementById('nextBtn');
 const stopBtn = document.getElementById('stopBtn');
+const screenBtn = document.getElementById('screenBtn');
+const flipBtn = document.getElementById('flipBtn');
 const chatLog = document.getElementById('chatLog');
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
@@ -412,6 +436,9 @@ let localStream = null;
 let role = null; // 'caller' | 'callee'
 let connected = false;
 let searchWatchdog = null;
+let currentFacingMode = 'user'; // 'user' = frontal, 'environment' = traseira
+let sharingScreen = false;
+let cameraTrackBackup = null;
 
 function armSearchWatchdog() {
   clearSearchWatchdog();
@@ -472,8 +499,9 @@ async function start() {
 
   if (MODE === 'video') {
     try {
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode }, audio: true });
       localVideo.srcObject = localStream;
+      screenBtn.disabled = false;
     } catch (err) {
       addMsg('não consegui acessar câmera/microfone: ' + err.message, 'system');
       startBtn.disabled = false;
@@ -618,6 +646,11 @@ function teardownPeer() {
 
 function next() {
   teardownPeer();
+  if (sharingScreen) {
+    sharingScreen = false;
+    screenBtn.textContent = '🖥️';
+    localVideo.srcObject = localStream;
+  }
   chatLog.innerHTML = '';
   setStatus('searching', 'procurando outro estranho...');
   ws.send(JSON.stringify({ type: 'next' }));
@@ -631,11 +664,77 @@ function stop() {
     localStream.getTracks().forEach(t => t.stop());
     localVideo.srcObject = null;
   }
+  sharingScreen = false;
+  cameraTrackBackup = null;
+  screenBtn.disabled = true;
+  screenBtn.textContent = '🖥️';
   setStatus('', 'desconectado');
   startBtn.disabled = false;
   stopBtn.disabled = true;
   nextBtn.disabled = true;
   chatLog.innerHTML = '';
+}
+
+async function flipCamera() {
+  if (!localStream) return;
+  const nextFacing = currentFacingMode === 'user' ? 'environment' : 'user';
+  try {
+    const newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: nextFacing }, audio: false });
+    const newTrack = newStream.getVideoTracks()[0];
+
+    // Troca a faixa de vídeo que está sendo enviada pro parceiro, se já conectado
+    if (pc) {
+      const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+      if (sender) await sender.replaceTrack(newTrack);
+    }
+
+    // Troca a faixa antiga pela nova no stream local e atualiza a prévia
+    const oldTrack = localStream.getVideoTracks()[0];
+    if (oldTrack) {
+      localStream.removeTrack(oldTrack);
+      oldTrack.stop();
+    }
+    localStream.addTrack(newTrack);
+    localVideo.srcObject = localStream;
+    currentFacingMode = nextFacing;
+  } catch (err) {
+    addMsg('não consegui trocar de câmera: ' + err.message, 'system');
+  }
+}
+
+async function toggleScreenShare() {
+  if (!sharingScreen) {
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const screenTrack = screenStream.getVideoTracks()[0];
+      cameraTrackBackup = localStream ? localStream.getVideoTracks()[0] : null;
+
+      if (pc) {
+        const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+        if (sender) await sender.replaceTrack(screenTrack);
+      }
+      localVideo.srcObject = screenStream;
+      sharingScreen = true;
+      screenBtn.textContent = '🖥️ ✕';
+      // Se a pessoa parar de compartilhar pelo controle nativo do navegador
+      screenTrack.onended = () => stopScreenShare();
+    } catch (err) {
+      // Usuário cancelou o seletor de tela — não é um erro de verdade
+    }
+  } else {
+    stopScreenShare();
+  }
+}
+
+async function stopScreenShare() {
+  if (!sharingScreen) return;
+  if (cameraTrackBackup && pc) {
+    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+    if (sender) await sender.replaceTrack(cameraTrackBackup);
+  }
+  localVideo.srcObject = localStream;
+  sharingScreen = false;
+  screenBtn.textContent = '🖥️';
 }
 
 function sendChat() {
@@ -650,6 +749,8 @@ startBtn.onclick = start;
 nextBtn.onclick = next;
 stopBtn.onclick = stop;
 sendBtn.onclick = sendChat;
+flipBtn.onclick = flipCamera;
+screenBtn.onclick = toggleScreenShare;
 
 document.getElementById('leaveLink').addEventListener('click', (e) => {
   e.preventDefault();
