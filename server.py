@@ -1,18 +1,21 @@
 """
-Servidor de sinalização para chat estilo Omegle.
+Servidor de sinalização para chat estilo Omegle — agora com suporte a salas
+de 2 a 4 pessoas (não só pares).
 
 Responsabilidades:
-- Parear dois usuários, priorizando país/interesses em comum quando possível
-  (preferência, não filtro rígido — se não achar ninguém parecido rápido,
-  pareia com quem estiver disponível)
-- Repassar mensagens de sinalização WebRTC (offer/answer/candidate) entre o par
-- Repassar mensagens de chat de texto entre o par
-- Tratar "next" (pular pra outro estranho) e desconexões
+- Agrupar usuários em salas do tamanho pedido (2, 3 ou 4), priorizando
+  país/interesses em comum quando possível (preferência, não filtro rígido)
+- Repassar mensagens de sinalização WebRTC (offer/answer/candidate) entre
+  pares específicos dentro da sala — cada participante se conecta
+  diretamente com todos os outros (malha P2P)
+- Repassar mensagens de chat de texto pra sala inteira
+- Tratar "next" (pular) e desconexões — se alguém sai, a sala inteira se
+  desfaz e o resto volta pra fila
 - Expor um contador simples de quantas pessoas estão online agora
 
 O vídeo/áudio em si NÃO passa por este servidor: depois que o WebRTC é
-negociado, a mídia trafega direto entre os dois navegadores (P2P).
-Este servidor só ajuda os dois lados a se "apresentarem".
+negociado, a mídia trafega direto entre os navegadores (P2P). Este servidor
+só ajuda todo mundo a se "apresentar".
 """
 
 import asyncio
@@ -31,14 +34,25 @@ logger = logging.getLogger("omegle-clone")
 app = FastAPI()
 
 
+class Room:
+    """Um grupo de 2 a 4 peers conversando entre si."""
+
+    def __init__(self, mode: str, size: int):
+        self.id = str(uuid.uuid4())[:8]
+        self.mode = mode
+        self.size = size
+        self.peers: list["Peer"] = []
+
+
 class Peer:
     def __init__(self, ws: WebSocket):
         self.id = str(uuid.uuid4())[:8]
         self.ws = ws
-        self.partner: Optional["Peer"] = None
+        self.room: Optional[Room] = None
         self.mode = "video"
         self.country = "any"
         self.tags: set[str] = set()
+        self.group_size = 2
         self.last_seen = time.monotonic()
 
     async def send(self, payload: dict) -> bool:
@@ -48,10 +62,15 @@ class Peer:
         except Exception:
             return False
 
-    def set_preferences(self, mode: str, country: str, interests: list[str]):
+    def set_preferences(self, mode: str, country: str, interests: list[str], group_size):
         self.mode = mode if mode in ("video", "text") else "video"
         self.country = (country or "any").upper() if country != "any" else "any"
         self.tags = {t.strip().lower() for t in interests if t.strip()}
+        try:
+            size = int(group_size)
+        except (TypeError, ValueError):
+            size = 2
+        self.group_size = max(2, min(4, size))
 
 
 def match_score(a: Peer, b: Peer) -> tuple[int, list[str]]:
@@ -69,38 +88,39 @@ def match_score(a: Peer, b: Peer) -> tuple[int, list[str]]:
 
 
 class Matchmaker:
-    """Mantém a fila de espera e os pares ativos."""
+    """Mantém a fila de espera e forma as salas."""
 
     def __init__(self):
         self.waiting: list[Peer] = []
         self.lock = asyncio.Lock()
 
+    def _pick_groupmates(self, peer: Peer, candidates: list[Peer]) -> list[Peer]:
+        """Escolhe os (group_size - 1) candidatos mais compatíveis com peer."""
+        scored = sorted(candidates, key=lambda c: match_score(peer, c)[0], reverse=True)
+        return scored[: peer.group_size - 1]
+
     async def enqueue(self, peer: Peer):
         async with self.lock:
-            # Vídeo só casa com vídeo, texto só com texto — misturar quebra
-            # a chamada (um lado nunca vai ter câmera pra negociar).
-            same_mode = [p for p in self.waiting if p.mode == peer.mode]
-            if same_mode:
-                # Escolhe quem tem mais em comum com o peer que chegou.
-                # Se ninguém tiver nada em comum, casa com o primeiro
-                # compatível mesmo assim — preferência, não trava.
-                best_partner = None
-                best_score = -1
-                best_shared: list[str] = []
-                for candidate in same_mode:
-                    score, shared = match_score(peer, candidate)
-                    if score > best_score:
-                        best_score = score
-                        best_partner = candidate
-                        best_shared = shared
+            # Vídeo só casa com vídeo, texto só com texto. E o tamanho de
+            # sala pedido tem que ser exatamente igual — não dá pra formar
+            # uma sala de 4 com gente que só quer sala de 2.
+            compatible = [p for p in self.waiting if p.mode == peer.mode and p.group_size == peer.group_size]
 
-                self.waiting.remove(best_partner)
-                partner = best_partner
-                peer.partner = partner
-                partner.partner = peer
-                await peer.send({"type": "matched", "role": "callee", "peer_id": partner.id, "shared": best_shared})
-                await partner.send({"type": "matched", "role": "caller", "peer_id": peer.id, "shared": best_shared})
-                logger.info(f"Pareados: {peer.id} <-> {partner.id} (score={best_score})")
+            if len(compatible) >= peer.group_size - 1:
+                groupmates = self._pick_groupmates(peer, compatible)
+                for p in groupmates:
+                    self.waiting.remove(p)
+
+                room = Room(peer.mode, peer.group_size)
+                room.peers = [peer] + groupmates
+                for p in room.peers:
+                    p.room = room
+
+                for p in room.peers:
+                    others = [o.id for o in room.peers if o.id != p.id]
+                    await p.send({"type": "room-ready", "you": p.id, "peers": others})
+
+                logger.info(f"Sala formada ({room.size} pessoas): {[p.id for p in room.peers]}")
             else:
                 self.waiting.append(peer)
                 await peer.send({"type": "waiting"})
@@ -110,35 +130,39 @@ class Matchmaker:
             if peer in self.waiting:
                 self.waiting.remove(peer)
 
-    async def partner_unreachable(self, peer: Peer):
-        """Chamado quando o envio pro parceiro falha — a conexão dele morreu
-        sem o servidor perceber (comum em redes móveis instáveis). Devolve
-        quem ainda está vivo (peer) pra fila."""
-        peer.partner = None
-        await peer.send({"type": "partner-left"})
-        await self.enqueue(peer)
+    async def dissolve_room(self, peer: Peer):
+        """Peer saiu de uma sala ativa (desconectou, deu erro, ou clicou
+        'próximo') — avisa o resto da sala e devolve os sobreviventes pra
+        fila, mantendo as preferências de cada um."""
+        room = peer.room
+        peer.room = None
+        if not room:
+            return
+
+        survivors = [p for p in room.peers if p.id != peer.id]
+        for p in survivors:
+            p.room = None
+            await p.send({"type": "partner-left", "peer_id": peer.id})
+
+        for p in survivors:
+            await self.enqueue(p)
 
     async def disconnect(self, peer: Peer):
         """Chamado quando o peer sai ou fecha a conexão."""
         await self.leave_queue(peer)
-        partner = peer.partner
-        if partner:
-            partner.partner = None
-            peer.partner = None
-            await partner.send({"type": "partner-left"})
-            # Devolve o parceiro pra fila automaticamente
-            await self.enqueue(partner)
+        await self.dissolve_room(peer)
 
 
 matchmaker = Matchmaker()
 
-# Todo mundo com uma conexão WebSocket aberta agora (pareado ou esperando),
+# Todo mundo com uma conexão WebSocket aberta agora (em sala ou esperando),
 # só pra alimentar o contador de "online" na landing page.
 active_peers: set[str] = set()
 
 # Registro de todos os peers vivos, pra "tarefa de vigia" conseguir checar
 # quem parou de dar sinal de vida (celular que travou, app em segundo plano,
-# rede que caiu sem avisar o servidor).
+# rede que caiu sem avisar o servidor), e pra rotear mensagens de sinalização
+# WebRTC direcionadas a um peer específico dentro de uma sala.
 peer_registry: dict[str, Peer] = {}
 
 STALE_TIMEOUT = 40  # segundos sem nenhuma mensagem = considera morto
@@ -184,7 +208,9 @@ async def websocket_endpoint(websocket: WebSocket):
         peer.last_seen = time.monotonic()
         data = json.loads(raw)
         if data.get("type") == "join":
-            peer.set_preferences(data.get("mode"), data.get("country"), data.get("interests", []))
+            peer.set_preferences(
+                data.get("mode"), data.get("country"), data.get("interests", []), data.get("group_size", 2)
+            )
 
         await matchmaker.enqueue(peer)
 
@@ -199,19 +225,32 @@ async def websocket_endpoint(websocket: WebSocket):
             msg_type = data.get("type")
 
             if msg_type == "next":
-                # Pula pro próximo estranho, mantendo as mesmas preferências
+                # Pula pra outra sala, mantendo as mesmas preferências
                 await matchmaker.disconnect(peer)
                 await matchmaker.enqueue(peer)
 
-            elif msg_type in ("offer", "answer", "candidate", "chat"):
-                if peer.partner:
-                    ok = await peer.partner.send({**data, "from": peer.id})
+            elif msg_type in ("offer", "answer", "candidate"):
+                # Sinalização WebRTC é sempre direcionada a um peer específico
+                # dentro da sala (cada par se conecta diretamente).
+                target_id = data.get("to")
+                target = peer_registry.get(target_id)
+                if target and peer.room and target in peer.room.peers:
+                    ok = await target.send({**data, "from": peer.id})
                     if not ok:
-                        await matchmaker.partner_unreachable(peer)
+                        await matchmaker.dissolve_room(peer)
+
+            elif msg_type == "chat":
+                # Chat de texto vai pra sala inteira
+                if peer.room:
+                    for p in peer.room.peers:
+                        if p.id != peer.id:
+                            await p.send({**data, "from": peer.id})
 
             elif msg_type == "typing":
-                if peer.partner:
-                    await peer.partner.send({"type": "typing"})
+                if peer.room:
+                    for p in peer.room.peers:
+                        if p.id != peer.id:
+                            await p.send({"type": "typing"})
 
             elif msg_type == "ping":
                 # Só recebe a mensagem mesmo — mantém a conexão "viva" e evita

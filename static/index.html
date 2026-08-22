@@ -438,6 +438,15 @@
     </div>
 
     <div class="field">
+      <label>com quantas pessoas</label>
+      <div class="mode-toggle">
+        <button type="button" class="mode-btn size-btn active" data-size="2">👤 1 estranho</button>
+        <button type="button" class="mode-btn size-btn" data-size="4">👥 grupo (até 4)</button>
+      </div>
+      <div class="hint">No grupo, você entra numa sala com até 3 outras pessoas ao mesmo tempo.</div>
+    </div>
+
+    <div class="field">
       <label>parear de preferência com pessoas de</label>
       <select id="countrySelect">
         <option value="any">qualquer país</option>
@@ -513,19 +522,28 @@
 
 <script>
 let selectedMode = 'video';
+let selectedSize = 2;
 
-document.querySelectorAll('.mode-btn').forEach(btn => {
+document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.mode-btn[data-mode]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     selectedMode = btn.dataset.mode;
+  });
+});
+
+document.querySelectorAll('.size-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedSize = parseInt(btn.dataset.size, 10);
   });
 });
 
 document.getElementById('startBtn').addEventListener('click', () => {
   const country = document.getElementById('countrySelect').value;
   const interests = document.getElementById('interestsInput').value.trim();
-  const params = new URLSearchParams({ mode: selectedMode, country });
+  const params = new URLSearchParams({ mode: selectedMode, country, size: selectedSize });
   if (interests) params.set('interests', interests);
   location.href = '/chat.html?' + params.toString();
 });

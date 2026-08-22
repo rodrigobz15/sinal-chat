@@ -134,6 +134,27 @@
     align-items:center;
     gap: 10px;
     min-height:0;
+    width: 100%;
+  }
+
+  #remoteVideos{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 10px;
+    width: 100%;
+  }
+
+  /* Salas com mais de 2 pessoas: vídeos remotos lado a lado em vez de
+     empilhados, senão cada caixa fica minúscula */
+  .video-grid.grid-mode #remoteVideos{
+    flex-direction:row;
+    flex-wrap: wrap;
+    justify-content:center;
+  }
+  .video-grid.grid-mode #remoteVideos .video-box{
+    width: calc(50% - 5px);
+    aspect-ratio: 4 / 3;
   }
 
   .video-box{
@@ -365,17 +386,16 @@
 
 <main>
   <div class="video-stage">
-    <div class="video-grid">
+    <div class="video-grid" id="videoGrid">
       <div class="video-box">
         <video id="localVideo" autoplay muted playsinline></video>
         <span class="video-label">você</span>
         <button class="flip-btn" id="flipBtn" title="Trocar câmera">🔄</button>
       </div>
-      <div class="video-box">
-        <video id="remoteVideo" autoplay playsinline></video>
+      <div class="video-box" id="waitingBox">
         <span class="placeholder" id="remotePlaceholder">aguardando um estranho...</span>
-        <span class="video-label" id="remoteLabel" style="display:none;">estranho</span>
       </div>
+      <div id="remoteVideos"></div>
     </div>
   </div>
 
@@ -401,9 +421,9 @@
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
 const localVideo = document.getElementById('localVideo');
-const remoteVideo = document.getElementById('remoteVideo');
-const remotePlaceholder = document.getElementById('remotePlaceholder');
-const remoteLabel = document.getElementById('remoteLabel');
+const videoGrid = document.getElementById('videoGrid');
+const remoteVideosContainer = document.getElementById('remoteVideos');
+const waitingBox = document.getElementById('waitingBox');
 const startBtn = document.getElementById('startBtn');
 const nextBtn = document.getElementById('nextBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -413,8 +433,6 @@ const chatLog = document.getElementById('chatLog');
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
 
-// STUN público do Google — funciona para boa parte das conexões.
-// Para produção de verdade, adicione também um servidor TURN (veja README).
 // STUN/TURN dedicados (conta grátis no Metered) — bem mais confiáveis que
 // servidores públicos compartilhados, essencial pra conectar entre redes
 // diferentes (ex: wifi de um lado e dados móveis do outro).
@@ -431,9 +449,11 @@ async function getIceServers() {
 }
 
 let ws = null;
-let pc = null;
 let localStream = null;
-let role = null; // 'caller' | 'callee'
+let myId = null;
+// Cada pessoa da sala tem sua própria conexão WebRTC direta (malha P2P).
+// Chave: id do peer remoto. Valor: { pc, videoEl }
+const peers = new Map();
 let connected = false;
 let searchWatchdog = null;
 let currentFacingMode = 'user'; // 'user' = frontal, 'environment' = traseira
@@ -468,7 +488,8 @@ setInterval(() => {
   }
 }, 20000);
 
-// Preferências vindas da landing page via querystring: ?mode=video&country=BR&interests=games,musica
+// Preferências vindas da landing page via querystring:
+// ?mode=video&country=BR&interests=games,musica&size=2
 const params = new URLSearchParams(location.search);
 const MODE = params.get('mode') === 'text' ? 'text' : 'video';
 const COUNTRY = params.get('country') || 'any';
@@ -476,9 +497,13 @@ const INTERESTS = (params.get('interests') || '')
   .split(',')
   .map(s => s.trim().toLowerCase())
   .filter(Boolean);
+const GROUP_SIZE = Math.max(2, Math.min(4, parseInt(params.get('size'), 10) || 2));
 
 if (MODE === 'text') {
   document.body.classList.add('text-mode');
+}
+if (GROUP_SIZE > 2) {
+  videoGrid.classList.add('grid-mode');
 }
 
 function setStatus(state, label) {
@@ -520,7 +545,9 @@ function connectSocket() {
   ws.onopen = () => {
     setStatus('searching', 'procurando estranho...');
     nextBtn.disabled = false;
-    ws.send(JSON.stringify({ type: 'join', mode: MODE, country: COUNTRY, interests: INTERESTS }));
+    ws.send(JSON.stringify({
+      type: 'join', mode: MODE, country: COUNTRY, interests: INTERESTS, group_size: GROUP_SIZE
+    }));
   };
 
   ws.onmessage = async (event) => {
@@ -532,59 +559,58 @@ function connectSocket() {
         armSearchWatchdog();
         break;
 
-      case 'matched':
+      case 'room-ready':
         clearSearchWatchdog();
-        // Garante um estado limpo mesmo se alguma mensagem anterior (tipo
-        // 'partner-left') tiver se perdido no caminho.
-        teardownPeer();
-        role = data.role;
+        teardownPeers(); // garante estado limpo, mesmo se algo anterior se perdeu
+        myId = data.you;
         setStatus('connected', 'conectado');
         connected = true;
-        nextBtn.disabled = false;
         chatInput.disabled = false;
         sendBtn.disabled = false;
-        remotePlaceholder.style.display = 'none';
-        remoteLabel.style.display = 'block';
-        if (data.shared && data.shared.length) {
-          addMsg(`você foi conectado a um estranho. em comum: ${data.shared.join(', ')}`, 'system');
-        } else {
-          addMsg('você foi conectado a um estranho. diga oi!', 'system');
-        }
+        waitingBox.style.display = 'none';
+
+        const n = data.peers.length;
+        addMsg(n === 1 ? 'você foi conectado a um estranho. diga oi!' : `você entrou numa sala com mais ${n} estranhos. diga oi!`, 'system');
+
         if (MODE === 'video') {
-          await setupPeerConnection();
-          if (role === 'caller') {
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            ws.send(JSON.stringify({ type: 'offer', sdp: offer.sdp }));
+          for (const otherId of data.peers) {
+            const isCaller = myId < otherId; // regra determinística: quem tem id "menor" inicia a oferta
+            await setupPeerConnection(otherId, isCaller);
           }
         }
         break;
 
-      case 'offer':
-        if (!pc) await setupPeerConnection();
-        await pc.setRemoteDescription({ type: 'offer', sdp: data.sdp });
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        ws.send(JSON.stringify({ type: 'answer', sdp: answer.sdp }));
+      case 'offer': {
+        let entry = peers.get(data.from);
+        if (!entry) entry = await setupPeerConnection(data.from, false);
+        await entry.pc.setRemoteDescription({ type: 'offer', sdp: data.sdp });
+        const answer = await entry.pc.createAnswer();
+        await entry.pc.setLocalDescription(answer);
+        ws.send(JSON.stringify({ type: 'answer', to: data.from, sdp: answer.sdp }));
         break;
+      }
 
-      case 'answer':
-        await pc.setRemoteDescription({ type: 'answer', sdp: data.sdp });
+      case 'answer': {
+        const entry = peers.get(data.from);
+        if (entry) await entry.pc.setRemoteDescription({ type: 'answer', sdp: data.sdp });
         break;
+      }
 
-      case 'candidate':
-        if (data.candidate) {
-          try { await pc.addIceCandidate(data.candidate); } catch (e) {}
+      case 'candidate': {
+        const entry = peers.get(data.from);
+        if (entry && data.candidate) {
+          try { await entry.pc.addIceCandidate(data.candidate); } catch (e) {}
         }
         break;
+      }
 
       case 'chat':
         addMsg(data.text, 'stranger');
         break;
 
       case 'partner-left':
-        addMsg('o estranho saiu da conversa.', 'system');
-        teardownPeer();
+        addMsg('alguém saiu da conversa.', 'system');
+        teardownPeers();
         setStatus('searching', 'procurando outro estranho...');
         armSearchWatchdog();
         break;
@@ -598,54 +624,74 @@ function connectSocket() {
   };
 }
 
-async function setupPeerConnection() {
-  const iceServers = await getIceServers();
-  pc = new RTCPeerConnection({ iceServers });
+function createRemoteVideoBox(peerId) {
+  const box = document.createElement('div');
+  box.className = 'video-box';
+  box.dataset.peerId = peerId;
 
-  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+  const video = document.createElement('video');
+  video.autoplay = true;
+  video.playsInline = true;
+
+  const label = document.createElement('span');
+  label.className = 'video-label';
+  label.textContent = 'estranho';
+
+  box.appendChild(video);
+  box.appendChild(label);
+  remoteVideosContainer.appendChild(box);
+  return video;
+}
+
+async function setupPeerConnection(peerId, isCaller) {
+  const iceServers = await getIceServers();
+  const pc = new RTCPeerConnection({ iceServers });
+  const videoEl = MODE === 'video' ? createRemoteVideoBox(peerId) : null;
+
+  if (localStream) {
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+  }
 
   pc.ontrack = (event) => {
-    remoteVideo.srcObject = event.streams[0];
+    if (videoEl) videoEl.srcObject = event.streams[0];
   };
 
   pc.onicecandidate = (event) => {
     if (event.candidate) {
-      ws.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
+      ws.send(JSON.stringify({ type: 'candidate', to: peerId, candidate: event.candidate }));
     }
   };
 
   pc.oniceconnectionstatechange = () => {
     const state = pc.iceConnectionState;
-    console.log('ICE state:', state);
-    if (state === 'checking') {
-      addMsg('conectando o vídeo...', 'system');
-    } else if (state === 'connected' || state === 'completed') {
-      // silencioso, já dá pra ver o vídeo aparecendo
-    } else if (state === 'failed') {
-      addMsg('não consegui conectar o vídeo com esse estranho (rede muito restrita). tenta "próximo".', 'system');
-    } else if (state === 'disconnected') {
-      addMsg('conexão de vídeo instável...', 'system');
+    if (state === 'failed') {
+      addMsg('não consegui conectar o vídeo com um dos estranhos (rede muito restrita).', 'system');
     }
   };
+
+  peers.set(peerId, { pc, videoEl });
+
+  if (isCaller) {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    ws.send(JSON.stringify({ type: 'offer', to: peerId, sdp: offer.sdp }));
+  }
+
+  return peers.get(peerId);
 }
 
-function teardownPeer() {
-  if (pc) {
-    pc.close();
-    pc = null;
-  }
-  remoteVideo.srcObject = null;
-  remotePlaceholder.style.display = 'block';
-  remoteLabel.style.display = 'none';
+function teardownPeers() {
+  peers.forEach(({ pc }) => pc.close());
+  peers.clear();
+  remoteVideosContainer.innerHTML = '';
+  waitingBox.style.display = 'flex';
   connected = false;
-  // nextBtn fica de propósito habilitado — é a forma manual de "procurar
-  // outra pessoa" caso o re-pareamento automático demore.
   chatInput.disabled = true;
   sendBtn.disabled = true;
 }
 
 function next() {
-  teardownPeer();
+  teardownPeers();
   if (sharingScreen) {
     sharingScreen = false;
     screenBtn.textContent = '🖥️';
@@ -658,7 +704,7 @@ function next() {
 
 function stop() {
   clearSearchWatchdog();
-  teardownPeer();
+  teardownPeers();
   if (ws) ws.close();
   if (localStream) {
     localStream.getTracks().forEach(t => t.stop());
@@ -682,13 +728,12 @@ async function flipCamera() {
     const newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: nextFacing }, audio: false });
     const newTrack = newStream.getVideoTracks()[0];
 
-    // Troca a faixa de vídeo que está sendo enviada pro parceiro, se já conectado
-    if (pc) {
+    // Troca a faixa de vídeo enviada pra TODOS os participantes da sala
+    peers.forEach(({ pc }) => {
       const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-      if (sender) await sender.replaceTrack(newTrack);
-    }
+      if (sender) sender.replaceTrack(newTrack);
+    });
 
-    // Troca a faixa antiga pela nova no stream local e atualiza a prévia
     const oldTrack = localStream.getVideoTracks()[0];
     if (oldTrack) {
       localStream.removeTrack(oldTrack);
@@ -709,14 +754,14 @@ async function toggleScreenShare() {
       const screenTrack = screenStream.getVideoTracks()[0];
       cameraTrackBackup = localStream ? localStream.getVideoTracks()[0] : null;
 
-      if (pc) {
+      peers.forEach(({ pc }) => {
         const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-        if (sender) await sender.replaceTrack(screenTrack);
-      }
+        if (sender) sender.replaceTrack(screenTrack);
+      });
+
       localVideo.srcObject = screenStream;
       sharingScreen = true;
       screenBtn.textContent = '🖥️ ✕';
-      // Se a pessoa parar de compartilhar pelo controle nativo do navegador
       screenTrack.onended = () => stopScreenShare();
     } catch (err) {
       // Usuário cancelou o seletor de tela — não é um erro de verdade
@@ -728,9 +773,11 @@ async function toggleScreenShare() {
 
 async function stopScreenShare() {
   if (!sharingScreen) return;
-  if (cameraTrackBackup && pc) {
-    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-    if (sender) await sender.replaceTrack(cameraTrackBackup);
+  if (cameraTrackBackup) {
+    peers.forEach(({ pc }) => {
+      const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+      if (sender) sender.replaceTrack(cameraTrackBackup);
+    });
   }
   localVideo.srcObject = localStream;
   sharingScreen = false;
@@ -754,7 +801,7 @@ screenBtn.onclick = toggleScreenShare;
 
 document.getElementById('leaveLink').addEventListener('click', (e) => {
   e.preventDefault();
-  stop(); // avisa o parceiro (via fechamento do WS) e limpa tudo antes de sair
+  stop(); // avisa a sala (via fechamento do WS) e limpa tudo antes de sair
   setTimeout(() => { location.href = '/'; }, 150);
 });
 
