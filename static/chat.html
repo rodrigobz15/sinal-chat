@@ -130,6 +130,7 @@
     padding: 12px;
     display:flex;
     flex-direction:column;
+    justify-content:center;
     gap: 10px;
     min-height:0;
   }
@@ -157,11 +158,9 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    flex: 1;
-    width: auto;
-    max-width: 100%;
-    aspect-ratio: 16 / 11;
-    min-height: 0;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    flex-shrink: 0;
     box-shadow: 0 10px 26px -16px rgba(139,108,247,0.3);
   }
 
@@ -377,13 +376,13 @@
 
 <main>
   <div class="video-side video-side-left" id="videoLeft">
-    <div class="video-box">
+    <div class="video-box" id="waitingBox">
+      <span class="placeholder" id="remotePlaceholder">aguardando um estranho...</span>
+    </div>
+    <div class="video-box" id="localBox">
       <video id="localVideo" autoplay muted playsinline></video>
       <span class="video-label">você</span>
       <button class="flip-btn" id="flipBtn" title="Trocar câmera">🔄</button>
-    </div>
-    <div class="video-box" id="waitingBox">
-      <span class="placeholder" id="remotePlaceholder">aguardando um estranho...</span>
     </div>
   </div>
 
@@ -597,10 +596,25 @@ function connectSocket() {
         break;
 
       case 'partner-left':
-        addMsg('alguém saiu da conversa.', 'system');
+        // Isso só acontece no chat normal (1 estranho) — a conversa acabou
+        // de verdade, então volta a procurar do zero.
+        addMsg('o estranho saiu da conversa.', 'system');
         teardownPeers();
         setStatus('searching', 'procurando outro estranho...');
         armSearchWatchdog();
+        break;
+
+      case 'peer-joined':
+        // Alguém novo entrou na sala de grupo — a conexão com essa pessoa
+        // vai se formar sozinha assim que a oferta dela chegar (não precisa
+        // fazer nada aqui além de avisar na tela).
+        addMsg('alguém entrou na sala.', 'system');
+        break;
+
+      case 'peer-left':
+        // Só essa pessoa saiu — a sala continua rodando pra quem ficou.
+        addMsg('alguém saiu da sala.', 'system');
+        removePeerBox(data.peer_id);
         break;
     }
   };
@@ -628,12 +642,14 @@ function createRemoteVideoBox(peerId) {
   box.appendChild(video);
   box.appendChild(label);
 
-  // O primeiro estranho fica do lado esquerdo (junto com você); do segundo
-  // em diante vai pro lado direito — assim fica "2 de um lado, 2 do outro".
+  // O primeiro estranho fica do lado esquerdo (em cima da sua câmera); do
+  // segundo em diante vai pro lado direito — assim fica "2 de um lado, 2 do
+  // outro", com o estranho sempre por cima de você (igual Omegle).
+  const localBox = document.getElementById('localBox');
   const existingRemotes = document.querySelectorAll('[data-peer-id]').length;
   if (existingRemotes === 0) {
     waitingBox.style.display = 'none';
-    videoLeft.appendChild(box);
+    videoLeft.insertBefore(box, localBox);
   } else {
     videoRight.appendChild(box);
   }
@@ -691,6 +707,24 @@ function teardownPeers() {
   connected = false;
   chatInput.disabled = true;
   sendBtn.disabled = true;
+}
+
+function removePeerBox(peerId) {
+  const entry = peers.get(peerId);
+  if (entry) {
+    entry.pc.close();
+    peers.delete(peerId);
+  }
+  const box = document.querySelector(`[data-peer-id="${peerId}"]`);
+  if (box) box.remove();
+
+  // Se ninguém mais restou na sala, volta a mostrar o placeholder — mas
+  // continua "conectado" (a sala de grupo continua aberta, só esperando
+  // mais gente entrar).
+  if (document.querySelectorAll('[data-peer-id]').length === 0) {
+    waitingBox.style.display = 'flex';
+  }
+  updateLayout();
 }
 
 function next() {
