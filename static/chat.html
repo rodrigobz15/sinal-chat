@@ -627,6 +627,12 @@ function connectSocket() {
 }
 
 function createRemoteVideoBox(peerId) {
+  // Se por algum motivo já existe uma caixa desse peerId (reconexão rápida,
+  // evento duplicado etc), remove a antiga antes de criar a nova — nunca
+  // deixa fantasma acumulado.
+  const stale = document.querySelector(`[data-peer-id="${peerId}"]`);
+  if (stale) stale.remove();
+
   const box = document.createElement('div');
   box.className = 'video-box';
   box.dataset.peerId = peerId;
@@ -662,6 +668,14 @@ function updateLayout() {
 }
 
 async function setupPeerConnection(peerId, isCaller) {
+  // Idem: se já existe uma conexão pra esse peerId (reconexão rápida,
+  // mensagem duplicada), fecha a antiga antes de abrir uma nova.
+  const existing = peers.get(peerId);
+  if (existing) {
+    existing.pc.close();
+    peers.delete(peerId);
+  }
+
   const iceServers = await getIceServers();
   const pc = new RTCPeerConnection({ iceServers });
   const videoEl = MODE === 'video' ? createRemoteVideoBox(peerId) : null;
