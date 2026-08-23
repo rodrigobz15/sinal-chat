@@ -183,24 +183,48 @@
     border-radius: 999px;
   }
 
-  .flip-btn{
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border-radius: 50%;
-    border: none;
-    background: rgba(0,0,0,0.45);
-    color: #fff;
-    font-size: 15px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor: pointer;
+  .more-menu{
+    position: relative;
   }
-  .flip-btn:hover{ background: rgba(0,0,0,0.65); border-color: transparent; }
+
+  .more-menu > button{
+    padding: 12px 14px;
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .more-dropdown{
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    min-width: 200px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 12px 32px -8px rgba(0,0,0,0.25);
+    overflow: hidden;
+    z-index: 20;
+  }
+
+  .more-dropdown.open{
+    display: flex;
+  }
+
+  .more-dropdown button{
+    text-align: left;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .more-dropdown button:hover{
+    background: var(--panel-2);
+    border-color: transparent;
+  }
 
   .placeholder{
     color: var(--dim);
@@ -343,7 +367,7 @@
   body.text-mode main{ grid-template-columns: 1fr; }
   body.text-mode .chat-panel{ max-width: 720px; margin: 0 auto; width:100%; }
   body.text-mode .bottom-bar{ max-width: 720px; margin: 0 auto; width:100%; }
-  body.text-mode #screenBtn{ display:none; }
+  body.text-mode .more-menu{ display:none; }
 
   .back-link{
     font-size: 13px;
@@ -382,7 +406,6 @@
     <div class="video-box" id="localBox">
       <video id="localVideo" autoplay muted playsinline></video>
       <span class="video-label">você</span>
-      <button class="flip-btn" id="flipBtn" title="Trocar câmera">🔄</button>
     </div>
   </div>
 
@@ -397,7 +420,13 @@
   <div class="controls">
     <button class="primary" id="startBtn">começar</button>
     <button class="next" id="nextBtn" disabled>próximo →</button>
-    <button id="screenBtn" disabled title="Compartilhar sua tela">🖥️</button>
+    <div class="more-menu">
+      <button id="moreBtn" title="Mais opções">⋮</button>
+      <div class="more-dropdown" id="moreDropdown">
+        <button id="flipBtn">🔄 Trocar câmera</button>
+        <button id="screenBtn" disabled>🖥️ Compartilhar tela</button>
+      </div>
+    </div>
     <button id="stopBtn" disabled>parar</button>
   </div>
   <div class="chat-input-row">
@@ -745,7 +774,7 @@ function next() {
   teardownPeers();
   if (sharingScreen) {
     sharingScreen = false;
-    screenBtn.textContent = '🖥️';
+    screenBtn.textContent = '🖥️ Compartilhar tela';
     localVideo.srcObject = localStream;
   }
   chatLog.innerHTML = '';
@@ -764,7 +793,7 @@ function stop() {
   sharingScreen = false;
   cameraTrackBackup = null;
   screenBtn.disabled = true;
-  screenBtn.textContent = '🖥️';
+  screenBtn.textContent = '🖥️ Compartilhar tela';
   setStatus('', 'desconectado');
   startBtn.disabled = false;
   stopBtn.disabled = true;
@@ -812,7 +841,7 @@ async function toggleScreenShare() {
 
       localVideo.srcObject = screenStream;
       sharingScreen = true;
-      screenBtn.textContent = '🖥️ ✕';
+      screenBtn.textContent = '🖥️ Parar compartilhamento';
       screenTrack.onended = () => stopScreenShare();
     } catch (err) {
       // Usuário cancelou o seletor de tela — não é um erro de verdade
@@ -832,7 +861,7 @@ async function stopScreenShare() {
   }
   localVideo.srcObject = localStream;
   sharingScreen = false;
-  screenBtn.textContent = '🖥️';
+  screenBtn.textContent = '🖥️ Compartilhar tela';
 }
 
 function sendChat() {
@@ -847,8 +876,27 @@ startBtn.onclick = start;
 nextBtn.onclick = next;
 stopBtn.onclick = stop;
 sendBtn.onclick = sendChat;
-flipBtn.onclick = flipCamera;
-screenBtn.onclick = toggleScreenShare;
+
+const moreBtn = document.getElementById('moreBtn');
+const moreDropdown = document.getElementById('moreDropdown');
+
+moreBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  moreDropdown.classList.toggle('open');
+});
+document.addEventListener('click', () => {
+  moreDropdown.classList.remove('open');
+});
+moreDropdown.addEventListener('click', (e) => e.stopPropagation());
+
+flipBtn.onclick = () => {
+  moreDropdown.classList.remove('open');
+  flipCamera();
+};
+screenBtn.onclick = () => {
+  moreDropdown.classList.remove('open');
+  toggleScreenShare();
+};
 
 document.getElementById('leaveLink').addEventListener('click', (e) => {
   e.preventDefault();
