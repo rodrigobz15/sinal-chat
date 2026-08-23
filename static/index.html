@@ -226,19 +226,19 @@
     flex:1;
     padding: 12px;
     border-radius: var(--radius);
-    border: 2px solid var(--line);
-    background: var(--panel-2);
-    color: var(--text);
+    border: 2px solid var(--accent-a);
+    background: var(--panel);
+    color: var(--accent-a);
     font-family: var(--sans);
     font-weight: 700;
     font-size: 14px;
     cursor:pointer;
-    transition: border-color .15s, background .15s;
+    transition: border-color .15s, background .15s, color .15s;
   }
   .mode-btn.active{
     border-color: var(--accent-a);
-    background: var(--accent-a-soft);
-    color: var(--accent-a);
+    background: var(--accent-a);
+    color: #fff;
   }
 
   select, input[type=text]{
@@ -427,8 +427,8 @@
     <div class="field">
       <label>com quantas pessoas</label>
       <div class="mode-toggle">
-        <button type="button" class="mode-btn size-btn active" data-size="2">👤 1 estranho</button>
-        <button type="button" class="mode-btn size-btn" data-size="4">👥 grupo (até 4)</button>
+        <button type="button" class="mode-btn size-btn active" data-size="2" title="Chat 1 a 1 — só você e mais um estranho, ninguém mais entra na conversa.">2isPair</button>
+        <button type="button" class="mode-btn size-btn" data-size="4" title="Sala em grupo — você entra numa sala aberta com até 3 outras pessoas ao mesmo tempo, podendo entrar e sair gente durante a conversa.">4isPair</button>
       </div>
       <div class="hint">No grupo, você entra numa sala com até 3 outras pessoas ao mesmo tempo.</div>
     </div>
