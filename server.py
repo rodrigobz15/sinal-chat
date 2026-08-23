@@ -37,7 +37,7 @@ app = FastAPI()
 class Room:
     """Um grupo de 2 a 4 peers conversando entre si."""
 
-    def __init__(self, mode: str, size: int):
+    def __init__(self, mode: str, size: int = 0):
         self.id = str(uuid.uuid4())[:8]
         self.mode = mode
         self.size = size
@@ -49,6 +49,9 @@ class Peer:
         self.id = str(uuid.uuid4())[:8]
         self.ws = ws
         self.room: Optional[Room] = None
+        # Sala "em formação" — usada só enquanto o servidor ainda está
+        # esperando mais gente entrar num grupo (ver GROUP_COLLECT_SECONDS).
+        self.pending_room: Optional[Room] = None
         self.mode = "video"
         self.country = "any"
         self.tags: set[str] = set()
@@ -87,48 +90,128 @@ def match_score(a: Peer, b: Peer) -> tuple[int, list[str]]:
     return score, shared
 
 
+GROUP_COLLECT_SECONDS = 5  # quanto tempo esperar juntando gente pro grupo antes de fechar com quem tiver
+
+
 class Matchmaker:
-    """Mantém a fila de espera e forma as salas."""
+    """Mantém a fila de espera e forma as salas.
+
+    "1 estranho" (group_size <= 2) continua imediato, como sempre foi: casa
+    assim que aparecer outra pessoa compatível.
+
+    "grupo" (group_size > 2) é diferente: em vez de casar na hora com quem
+    estiver disponível (o que na prática quase sempre formaria só duplas,
+    já que dificilmente 4 pessoas chegam no exato mesmo instante), o
+    servidor junta todo mundo que pediu grupo numa "sala pendente" e espera
+    alguns segundos coletando mais gente antes de fechar — ou fecha na hora
+    se já bater o teto de 4.
+    """
 
     def __init__(self):
         self.waiting: list[Peer] = []
         self.lock = asyncio.Lock()
-
-    def _pick_groupmates(self, peer: Peer, candidates: list[Peer]) -> list[Peer]:
-        """Escolhe os (group_size - 1) candidatos mais compatíveis com peer."""
-        scored = sorted(candidates, key=lambda c: match_score(peer, c)[0], reverse=True)
-        return scored[: peer.group_size - 1]
+        self.pending_group: dict[str, Room] = {}  # mode -> sala em formação
+        self.pending_timers: dict[str, asyncio.Task] = {}
 
     async def enqueue(self, peer: Peer):
+        if peer.group_size <= 2:
+            await self._enqueue_pair(peer)
+        else:
+            await self._enqueue_group(peer)
+
+    async def _enqueue_pair(self, peer: Peer):
         async with self.lock:
-            # Vídeo só casa com vídeo, texto só com texto. E o tamanho de
-            # sala pedido tem que ser exatamente igual — não dá pra formar
-            # uma sala de 4 com gente que só quer sala de 2.
-            compatible = [p for p in self.waiting if p.mode == peer.mode and p.group_size == peer.group_size]
-
-            if len(compatible) >= peer.group_size - 1:
-                groupmates = self._pick_groupmates(peer, compatible)
-                for p in groupmates:
-                    self.waiting.remove(p)
-
-                room = Room(peer.mode, peer.group_size)
-                room.peers = [peer] + groupmates
+            compatible = [p for p in self.waiting if p.mode == peer.mode and p.group_size <= 2]
+            if compatible:
+                partner = max(compatible, key=lambda c: match_score(peer, c)[0])
+                self.waiting.remove(partner)
+                room = Room(peer.mode, 2)
+                room.peers = [peer, partner]
                 for p in room.peers:
                     p.room = room
-
                 for p in room.peers:
                     others = [o.id for o in room.peers if o.id != p.id]
                     await p.send({"type": "room-ready", "you": p.id, "peers": others})
-
-                logger.info(f"Sala formada ({room.size} pessoas): {[p.id for p in room.peers]}")
+                logger.info(f"Sala formada (2 pessoas): {[p.id for p in room.peers]}")
             else:
                 self.waiting.append(peer)
                 await peer.send({"type": "waiting"})
+
+    async def _enqueue_group(self, peer: Peer):
+        async with self.lock:
+            pending = self.pending_group.get(peer.mode)
+            if pending is None:
+                pending = Room(peer.mode)
+                pending.peers = [peer]
+                peer.pending_room = pending
+                self.pending_group[peer.mode] = pending
+                self.pending_timers[peer.mode] = asyncio.create_task(
+                    self._finalize_after_delay(peer.mode, pending)
+                )
+                await peer.send({"type": "waiting"})
+            else:
+                pending.peers.append(peer)
+                peer.pending_room = pending
+                if len(pending.peers) >= 4:
+                    timer = self.pending_timers.pop(peer.mode, None)
+                    if timer:
+                        timer.cancel()
+                    self.pending_group.pop(peer.mode, None)
+                    await self._finalize_room(pending)
+                else:
+                    await peer.send({"type": "waiting"})
+
+    async def _finalize_after_delay(self, mode: str, room: Room):
+        try:
+            await asyncio.sleep(GROUP_COLLECT_SECONDS)
+        except asyncio.CancelledError:
+            return
+
+        lone_peer = None
+        should_finalize = False
+        async with self.lock:
+            if self.pending_group.get(mode) is room:
+                self.pending_group.pop(mode, None)
+                self.pending_timers.pop(mode, None)
+                if len(room.peers) >= 2:
+                    should_finalize = True
+                elif room.peers:
+                    lone_peer = room.peers[0]
+                    lone_peer.pending_room = None
+
+        if should_finalize:
+            await self._finalize_room(room)
+        elif lone_peer:
+            # Ninguém mais apareceu no prazo — devolve essa pessoa pra
+            # tentativa normal (o watchdog do cliente vai reenviar 'next'
+            # daqui a pouco, ou alguém novo pode chegar e casar na hora).
+            await self.enqueue(lone_peer)
+
+    async def _finalize_room(self, room: Room):
+        room.size = len(room.peers)
+        for p in room.peers:
+            p.room = room
+            p.pending_room = None
+        for p in room.peers:
+            others = [o.id for o in room.peers if o.id != p.id]
+            await p.send({"type": "room-ready", "you": p.id, "peers": others})
+        logger.info(f"Sala formada ({room.size} pessoas): {[p.id for p in room.peers]}")
 
     async def leave_queue(self, peer: Peer):
         async with self.lock:
             if peer in self.waiting:
                 self.waiting.remove(peer)
+
+            pending = peer.pending_room
+            if pending:
+                peer.pending_room = None
+                if peer in pending.peers:
+                    pending.peers.remove(peer)
+                if not pending.peers and self.pending_group.get(pending.mode) is pending:
+                    self.pending_group.pop(pending.mode, None)
+                    timer = self.pending_timers.pop(pending.mode, None)
+                    if timer:
+                        timer.cancel()
 
     async def dissolve_room(self, peer: Peer):
         """Peer saiu de uma sala ativa (desconectou, deu erro, ou clicou

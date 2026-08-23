@@ -111,50 +111,41 @@
     gap: 1px;
     background: var(--line);
     min-height:0;
+    transition: grid-template-columns .2s ease;
+  }
+
+  /* Quando a sala tem mais de 2 pessoas, abre uma coluna de vídeo no lado
+     direito também — câmeras nos dois cantos, chat espremido no meio */
+  main.has-right{
+    grid-template-columns: minmax(200px, 300px) 1fr minmax(200px, 300px);
   }
 
   @media (max-width: 860px){
     main{ grid-template-columns: 1fr; }
+    main.has-right{ grid-template-columns: 1fr; }
   }
 
-  .video-stage{
+  .video-side{
     background: var(--bg);
     padding: 12px;
     display:flex;
     flex-direction:column;
     gap: 10px;
     min-height:0;
-    flex: 1;
   }
 
-  .video-grid{
-    flex: 1;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap: 10px;
-    min-height:0;
-    width: 100%;
+  .video-side-right:empty{
+    display:none;
   }
 
-  #remoteVideos{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap: 10px;
-    width: 100%;
-  }
-
-  /* Salas com mais de 2 pessoas: vídeos remotos lado a lado em vez de
-     empilhados, senão cada caixa fica minúscula */
-  .video-grid.grid-mode #remoteVideos{
-    flex-direction:row;
-    flex-wrap: wrap;
-    justify-content:center;
-  }
-  .video-grid.grid-mode #remoteVideos .video-box{
-    width: calc(50% - 5px);
-    aspect-ratio: 4 / 3;
+  @media (max-width: 860px){
+    .video-side-right{
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+    .video-side-right .video-box{
+      width: calc(50% - 5px);
+    }
   }
 
   .video-box{
@@ -349,7 +340,7 @@
   ::-webkit-scrollbar-thumb{ background: var(--line); border-radius:4px; }
 
   /* Modo somente texto: some só com o grid de vídeo, mantém os controles */
-  body.text-mode .video-stage{ display:none; }
+  body.text-mode .video-side{ display:none; }
   body.text-mode main{ grid-template-columns: 1fr; }
   body.text-mode .chat-panel{ max-width: 720px; margin: 0 auto; width:100%; }
   body.text-mode .bottom-bar{ max-width: 720px; margin: 0 auto; width:100%; }
@@ -385,23 +376,22 @@
 </header>
 
 <main>
-  <div class="video-stage">
-    <div class="video-grid" id="videoGrid">
-      <div class="video-box">
-        <video id="localVideo" autoplay muted playsinline></video>
-        <span class="video-label">você</span>
-        <button class="flip-btn" id="flipBtn" title="Trocar câmera">🔄</button>
-      </div>
-      <div class="video-box" id="waitingBox">
-        <span class="placeholder" id="remotePlaceholder">aguardando um estranho...</span>
-      </div>
-      <div id="remoteVideos"></div>
+  <div class="video-side video-side-left" id="videoLeft">
+    <div class="video-box">
+      <video id="localVideo" autoplay muted playsinline></video>
+      <span class="video-label">você</span>
+      <button class="flip-btn" id="flipBtn" title="Trocar câmera">🔄</button>
+    </div>
+    <div class="video-box" id="waitingBox">
+      <span class="placeholder" id="remotePlaceholder">aguardando um estranho...</span>
     </div>
   </div>
 
   <div class="chat-panel">
     <div class="chat-log" id="chatLog"></div>
   </div>
+
+  <div class="video-side video-side-right" id="videoRight"></div>
 </main>
 
 <div class="bottom-bar">
@@ -421,8 +411,9 @@
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
 const localVideo = document.getElementById('localVideo');
-const videoGrid = document.getElementById('videoGrid');
-const remoteVideosContainer = document.getElementById('remoteVideos');
+const videoLeft = document.getElementById('videoLeft');
+const videoRight = document.getElementById('videoRight');
+const mainEl = document.querySelector('main');
 const waitingBox = document.getElementById('waitingBox');
 const startBtn = document.getElementById('startBtn');
 const nextBtn = document.getElementById('nextBtn');
@@ -501,9 +492,6 @@ const GROUP_SIZE = Math.max(2, Math.min(4, parseInt(params.get('size'), 10) || 2
 
 if (MODE === 'text') {
   document.body.classList.add('text-mode');
-}
-if (GROUP_SIZE > 2) {
-  videoGrid.classList.add('grid-mode');
 }
 
 function setStatus(state, label) {
@@ -639,8 +627,22 @@ function createRemoteVideoBox(peerId) {
 
   box.appendChild(video);
   box.appendChild(label);
-  remoteVideosContainer.appendChild(box);
+
+  // O primeiro estranho fica do lado esquerdo (junto com você); do segundo
+  // em diante vai pro lado direito — assim fica "2 de um lado, 2 do outro".
+  const existingRemotes = document.querySelectorAll('[data-peer-id]').length;
+  if (existingRemotes === 0) {
+    waitingBox.style.display = 'none';
+    videoLeft.appendChild(box);
+  } else {
+    videoRight.appendChild(box);
+  }
+  updateLayout();
   return video;
+}
+
+function updateLayout() {
+  mainEl.classList.toggle('has-right', videoRight.childElementCount > 0);
 }
 
 async function setupPeerConnection(peerId, isCaller) {
@@ -683,8 +685,9 @@ async function setupPeerConnection(peerId, isCaller) {
 function teardownPeers() {
   peers.forEach(({ pc }) => pc.close());
   peers.clear();
-  remoteVideosContainer.innerHTML = '';
+  document.querySelectorAll('[data-peer-id]').forEach(el => el.remove());
   waitingBox.style.display = 'flex';
+  updateLayout();
   connected = false;
   chatInput.disabled = true;
   sendBtn.disabled = true;
