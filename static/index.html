@@ -146,47 +146,34 @@
     text-align:center;
   }
 
-  /* ---- Assinatura: duas bolhas fofas que se cutucam ---- */
+  /* ---- Assinatura: duas bolhas fofas balançando lado a lado ---- */
   .pair-hero{
-    position:relative;
-    width: 180px;
-    height: 100px;
-    margin-bottom: 20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 16px;
+    margin-bottom: 24px;
   }
   .pair-hero .blob-char{
-    position:absolute;
-    top: 10px;
-    width: 78px;
-    height: 78px;
-    border-radius: 50% 50% 46% 54% / 54% 46% 54% 46%;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
   }
   .pair-hero .blob-a{
-    left: 24px;
     background: var(--accent-a);
-    filter: none;
-    opacity: 1;
-    position: absolute;
-    animation: bump-a 2.6s cubic-bezier(.34,1.56,.64,1) infinite;
+    animation: bob 2.4s ease-in-out infinite;
   }
   .pair-hero .blob-b{
-    right: 24px;
     background: var(--accent-b);
-    filter: none;
-    opacity: 1;
-    position: absolute;
-    animation: bump-b 2.6s cubic-bezier(.34,1.56,.64,1) infinite;
+    animation: bob 2.4s ease-in-out infinite;
+    animation-delay: 0.3s;
   }
-  @keyframes bump-a{
-    0%, 100%{ transform: translateX(0) rotate(0deg); }
-    50%{ transform: translateX(22px) rotate(6deg); }
-  }
-  @keyframes bump-b{
-    0%, 100%{ transform: translateX(0) rotate(0deg); }
-    50%{ transform: translateX(-22px) rotate(-6deg); }
+  @keyframes bob{
+    0%, 100%{ transform: translateY(0); }
+    50%{ transform: translateY(-10px); }
   }
   @media (prefers-reduced-motion: reduce){
-    .pair-hero .blob-a{ animation:none; transform: translateX(11px); }
-    .pair-hero .blob-b{ animation:none; transform: translateX(-11px); }
+    .pair-hero .blob-char{ animation:none; }
     .online-pill .dot{ animation:none; }
   }
 
