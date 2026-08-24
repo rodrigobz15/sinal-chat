@@ -295,6 +295,34 @@
     gap: 10px;
   }
 
+  .rules-banner{
+    background: var(--accent-a-soft);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 6px;
+  }
+  .rules-banner strong{
+    display: block;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 10px;
+  }
+  .rules-banner ul{
+    margin: 0;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .rules-banner li{
+    font-size: 13px;
+    color: var(--dim);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
   .msg{
     font-size: 14px;
     font-weight: 600;
@@ -770,6 +798,19 @@ function removePeerBox(peerId) {
   updateLayout();
 }
 
+function resetChatLog() {
+  chatLog.innerHTML = `
+    <div class="rules-banner">
+      <strong>Bem-vindo ao 2isPair 👋</strong>
+      <ul>
+        <li>Seja respeitoso — sem ódio, assédio ou nudez</li>
+        <li>Isso não é site de namoro</li>
+        <li>Não peça nem compartilhe dados pessoais</li>
+        <li>Sem moderação automática — use o bom senso e clique "próximo" se algo parecer errado</li>
+      </ul>
+    </div>`;
+}
+
 function next() {
   teardownPeers();
   if (sharingScreen) {
@@ -777,7 +818,7 @@ function next() {
     screenBtn.textContent = '🖥️ Compartilhar tela';
     localVideo.srcObject = localStream;
   }
-  chatLog.innerHTML = '';
+  resetChatLog();
   setStatus('searching', 'procurando outro estranho...');
   ws.send(JSON.stringify({ type: 'next' }));
 }
@@ -798,7 +839,7 @@ function stop() {
   startBtn.disabled = false;
   stopBtn.disabled = true;
   nextBtn.disabled = true;
-  chatLog.innerHTML = '';
+  resetChatLog();
 }
 
 async function flipCamera() {
@@ -918,6 +959,7 @@ document.getElementById('themeToggle').addEventListener('click', () => {
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') sendChat();
 });
+resetChatLog();
 </script>
 </body>
 </html>
