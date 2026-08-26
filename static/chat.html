@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2isPair — converse com um estranho</title>
+<title>2isPair — talk to a stranger</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -45,6 +45,19 @@
     cursor: pointer;
   }
   .theme-toggle:hover{ border-color: var(--accent-a); }
+
+  .lang-toggle{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .lang-toggle:hover{ border-color: var(--accent-a); }
 
   .support-menu{
     position: relative;
@@ -494,31 +507,32 @@
     <span class="brand-name"><span class="two">2is</span><span class="pair">Pair</span></span>
   </div>
   <div style="display:flex; align-items:center; gap:14px;">
-    <div class="status-text" id="statusText">desconectado</div>
+    <div class="status-text" id="statusText" data-i18n="statusDisconnected">disconnected</div>
     <div class="support-menu">
-      <button class="support-btn" id="supportBtn">☕ Apoiar</button>
+      <button class="support-btn" id="supportBtn" data-i18n="supportBtn">☕ Support</button>
       <div class="support-dropdown" id="supportDropdown">
-        <strong>Apoie o 2isPair</strong>
-        <p>Esse é um projeto pessoal, sem fins comerciais. Se quiser ajudar a manter no ar, um Pix é muito bem-vindo 💜</p>
+        <strong data-i18n="supportTitle">Support 2isPair</strong>
+        <p data-i18n="supportText">This is a personal, non-commercial project. If you'd like to help keep it running, a Pix donation is very welcome 💜</p>
         <div class="pix-row">
           <code id="pixKey">rodrigozef11@gmail.com</code>
-          <button id="copyPixBtn" type="button">copiar</button>
+          <button id="copyPixBtn" type="button" data-i18n="copyBtn">copy</button>
         </div>
       </div>
     </div>
-    <button class="theme-toggle" id="themeToggle" title="Alternar tema">🌙</button>
-    <a class="back-link" href="/" id="leaveLink">← sair</a>
+    <button class="lang-toggle" id="langToggle" title="Switch language">🇺🇸 EN</button>
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
+    <a class="back-link" href="/" id="leaveLink" data-i18n="leaveLink">← leave</a>
   </div>
 </header>
 
 <main>
   <div class="video-side video-side-left" id="videoLeft">
     <div class="video-box" id="waitingBox">
-      <span class="placeholder" id="remotePlaceholder">aguardando um estranho...</span>
+      <span class="placeholder" id="remotePlaceholder" data-i18n="waitingPlaceholder">waiting for a stranger...</span>
     </div>
     <div class="video-box" id="localBox">
       <video id="localVideo" autoplay muted playsinline></video>
-      <span class="video-label">você</span>
+      <span class="video-label" data-i18n="youLabel">you</span>
     </div>
   </div>
 
@@ -531,20 +545,20 @@
 
 <div class="bottom-bar">
   <div class="controls">
-    <button class="primary" id="startBtn">começar</button>
-    <button class="next" id="nextBtn" disabled>próximo →</button>
+    <button class="primary" id="startBtn" data-i18n="startBtn">start</button>
+    <button class="next" id="nextBtn" disabled data-i18n="nextBtn">next →</button>
     <div class="more-menu">
-      <button id="moreBtn" title="Mais opções">⋮</button>
+      <button id="moreBtn" title="More options">⋮</button>
       <div class="more-dropdown" id="moreDropdown">
-        <button id="flipBtn">🔄 Trocar câmera</button>
-        <button id="screenBtn" disabled>🖥️ Compartilhar tela</button>
+        <button id="flipBtn" data-i18n="flipBtn">🔄 Flip camera</button>
+        <button id="screenBtn" disabled data-i18n="shareBtn">🖥️ Share screen</button>
       </div>
     </div>
-    <button id="stopBtn" disabled>parar</button>
+    <button id="stopBtn" disabled data-i18n="stopBtn">stop</button>
   </div>
   <div class="chat-input-row">
-    <input type="text" id="chatInput" placeholder="diga oi..." disabled>
-    <button class="primary" id="sendBtn" disabled>enviar</button>
+    <input type="text" id="chatInput" data-i18n-placeholder="chatPlaceholder" placeholder="say hi..." disabled>
+    <button class="primary" id="sendBtn" disabled data-i18n="sendBtn">send</button>
   </div>
 </div>
 
@@ -564,6 +578,98 @@ const flipBtn = document.getElementById('flipBtn');
 const chatLog = document.getElementById('chatLog');
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
+
+// ---- Sistema de idiomas: inglês por padrão, com opção de trocar pra português ----
+const translations = {
+  en: {
+    statusDisconnected: 'disconnected',
+    statusSearching: 'searching for a stranger...',
+    statusSearchingOther: 'searching for another stranger...',
+    statusConnected: 'connected',
+    supportBtn: '☕ Support',
+    supportTitle: 'Support 2isPair',
+    supportText: "This is a personal, non-commercial project. If you'd like to help keep it running, a Pix donation is very welcome 💜",
+    copyBtn: 'copy',
+    copiedMsg: 'copied!',
+    copyErrorMsg: 'error :(',
+    leaveLink: '← leave',
+    waitingPlaceholder: 'waiting for a stranger...',
+    youLabel: 'you',
+    strangerLabel: 'stranger',
+    startBtn: 'start',
+    nextBtn: 'next →',
+    stopBtn: 'stop',
+    flipBtn: '🔄 Flip camera',
+    shareBtn: '🖥️ Share screen',
+    stopShareBtn: '🖥️ Stop sharing',
+    chatPlaceholder: 'say hi...',
+    sendBtn: 'send',
+    cameraError: 'could not access camera/microphone: ',
+    connectedOne: 'you were connected to a stranger. say hi!',
+    connectedMany: 'you joined a room with {n} more strangers. say hi!',
+    partnerLeft: 'the stranger left the conversation.',
+    peerJoined: 'someone joined the room.',
+    peerLeft: 'someone left the room.',
+    videoFailedMsg: "couldn't connect video with one of the strangers (network too restrictive).",
+    flipError: "couldn't switch camera: ",
+    rulesTitle: 'Welcome to 2isPair 👋',
+    rule1: 'Be respectful — no hate, harassment, or nudity',
+    rule2: "This isn't a dating site",
+    rule3: "Don't ask for or share personal data",
+    rule4: 'No automated moderation — use common sense and click "next" if something seems wrong',
+    moreOptionsTitle: 'More options',
+  },
+  pt: {
+    statusDisconnected: 'desconectado',
+    statusSearching: 'procurando estranho...',
+    statusSearchingOther: 'procurando outro estranho...',
+    statusConnected: 'conectado',
+    supportBtn: '☕ Apoiar',
+    supportTitle: 'Apoie o 2isPair',
+    supportText: 'Esse é um projeto pessoal, sem fins comerciais. Se quiser ajudar a manter no ar, um Pix é muito bem-vindo 💜',
+    copyBtn: 'copiar',
+    copiedMsg: 'copiado!',
+    copyErrorMsg: 'erro :(',
+    leaveLink: '← sair',
+    waitingPlaceholder: 'aguardando um estranho...',
+    youLabel: 'você',
+    strangerLabel: 'estranho',
+    startBtn: 'começar',
+    nextBtn: 'próximo →',
+    stopBtn: 'parar',
+    flipBtn: '🔄 Trocar câmera',
+    shareBtn: '🖥️ Compartilhar tela',
+    stopShareBtn: '🖥️ Parar compartilhamento',
+    chatPlaceholder: 'diga oi...',
+    sendBtn: 'enviar',
+    cameraError: 'não consegui acessar câmera/microfone: ',
+    connectedOne: 'você foi conectado a um estranho. diga oi!',
+    connectedMany: 'você entrou numa sala com mais {n} estranhos. diga oi!',
+    partnerLeft: 'o estranho saiu da conversa.',
+    peerJoined: 'alguém entrou na sala.',
+    peerLeft: 'alguém saiu da sala.',
+    videoFailedMsg: 'não consegui conectar o vídeo com um dos estranhos (rede muito restrita).',
+    flipError: 'não consegui trocar de câmera: ',
+    rulesTitle: 'Bem-vindo ao 2isPair 👋',
+    rule1: 'Seja respeitoso — sem ódio, assédio ou nudez',
+    rule2: 'Isso não é site de namoro',
+    rule3: 'Não peça nem compartilhe dados pessoais',
+    rule4: 'Sem moderação automática — use o bom senso e clique "próximo" se algo parecer errado',
+    moreOptionsTitle: 'Mais opções',
+  }
+};
+
+function getLang() {
+  return localStorage.getItem('lang') || 'en';
+}
+function t(key, vars) {
+  const dict = translations[getLang()] || translations.en;
+  let str = dict[key] !== undefined ? dict[key] : (translations.en[key] || key);
+  if (vars) {
+    Object.keys(vars).forEach(k => { str = str.replace(`{${k}}`, vars[k]); });
+  }
+  return str;
+}
 
 // STUN/TURN dedicados (conta grátis no Metered) — bem mais confiáveis que
 // servidores públicos compartilhados, essencial pra conectar entre redes
@@ -657,7 +763,7 @@ async function start() {
       localVideo.srcObject = localStream;
       screenBtn.disabled = false;
     } catch (err) {
-      addMsg('não consegui acessar câmera/microfone: ' + err.message, 'system');
+      addMsg(t('cameraError') + err.message, 'system');
       startBtn.disabled = false;
       return;
     }
@@ -672,7 +778,7 @@ function connectSocket() {
   ws = new WebSocket(`${proto}://${location.host}/ws`);
 
   ws.onopen = () => {
-    setStatus('searching', 'procurando estranho...');
+    setStatus('searching', t('statusSearching'));
     nextBtn.disabled = false;
     ws.send(JSON.stringify({
       type: 'join', mode: MODE, country: COUNTRY, interests: INTERESTS, group_size: GROUP_SIZE
@@ -684,7 +790,7 @@ function connectSocket() {
 
     switch (data.type) {
       case 'waiting':
-        setStatus('searching', 'procurando estranho...');
+        setStatus('searching', t('statusSearching'));
         armSearchWatchdog();
         break;
 
@@ -692,14 +798,14 @@ function connectSocket() {
         clearSearchWatchdog();
         teardownPeers(); // garante estado limpo, mesmo se algo anterior se perdeu
         myId = data.you;
-        setStatus('connected', 'conectado');
+        setStatus('connected', t('statusConnected'));
         connected = true;
         chatInput.disabled = false;
         sendBtn.disabled = false;
         waitingBox.style.display = 'none';
 
         const n = data.peers.length;
-        addMsg(n === 1 ? 'você foi conectado a um estranho. diga oi!' : `você entrou numa sala com mais ${n} estranhos. diga oi!`, 'system');
+        addMsg(n === 1 ? t('connectedOne') : t('connectedMany', { n }), 'system');
 
         if (MODE === 'video') {
           for (const otherId of data.peers) {
@@ -740,9 +846,9 @@ function connectSocket() {
       case 'partner-left':
         // Isso só acontece no chat normal (1 estranho) — a conversa acabou
         // de verdade, então volta a procurar do zero.
-        addMsg('o estranho saiu da conversa.', 'system');
+        addMsg(t('partnerLeft'), 'system');
         teardownPeers();
-        setStatus('searching', 'procurando outro estranho...');
+        setStatus('searching', t('statusSearchingOther'));
         armSearchWatchdog();
         break;
 
@@ -750,12 +856,12 @@ function connectSocket() {
         // Alguém novo entrou na sala de grupo — a conexão com essa pessoa
         // vai se formar sozinha assim que a oferta dela chegar (não precisa
         // fazer nada aqui além de avisar na tela).
-        addMsg('alguém entrou na sala.', 'system');
+        addMsg(t('peerJoined'), 'system');
         break;
 
       case 'peer-left':
         // Só essa pessoa saiu — a sala continua rodando pra quem ficou.
-        addMsg('alguém saiu da sala.', 'system');
+        addMsg(t('peerLeft'), 'system');
         removePeerBox(data.peer_id);
         break;
     }
@@ -763,7 +869,7 @@ function connectSocket() {
 
   ws.onclose = () => {
     if (connected || startBtn.disabled) {
-      setStatus('', 'desconectado');
+      setStatus('', t('statusDisconnected'));
     }
   };
 }
@@ -785,7 +891,7 @@ function createRemoteVideoBox(peerId) {
 
   const label = document.createElement('span');
   label.className = 'video-label';
-  label.textContent = 'estranho';
+  label.textContent = t('strangerLabel');
 
   box.appendChild(video);
   box.appendChild(label);
@@ -839,7 +945,7 @@ async function setupPeerConnection(peerId, isCaller) {
   pc.oniceconnectionstatechange = () => {
     const state = pc.iceConnectionState;
     if (state === 'failed') {
-      addMsg('não consegui conectar o vídeo com um dos estranhos (rede muito restrita).', 'system');
+      addMsg(t('videoFailedMsg'), 'system');
     }
   };
 
@@ -886,12 +992,12 @@ function removePeerBox(peerId) {
 function resetChatLog() {
   chatLog.innerHTML = `
     <div class="rules-banner">
-      <strong>Bem-vindo ao 2isPair 👋</strong>
+      <strong>${t('rulesTitle')}</strong>
       <ul>
-        <li>Seja respeitoso — sem ódio, assédio ou nudez</li>
-        <li>Isso não é site de namoro</li>
-        <li>Não peça nem compartilhe dados pessoais</li>
-        <li>Sem moderação automática — use o bom senso e clique "próximo" se algo parecer errado</li>
+        <li>${t('rule1')}</li>
+        <li>${t('rule2')}</li>
+        <li>${t('rule3')}</li>
+        <li>${t('rule4')}</li>
       </ul>
     </div>`;
 }
@@ -900,11 +1006,11 @@ function next() {
   teardownPeers();
   if (sharingScreen) {
     sharingScreen = false;
-    screenBtn.textContent = '🖥️ Compartilhar tela';
+    screenBtn.textContent = t('shareBtn');
     localVideo.srcObject = localStream;
   }
   resetChatLog();
-  setStatus('searching', 'procurando outro estranho...');
+  setStatus('searching', t('statusSearchingOther'));
   ws.send(JSON.stringify({ type: 'next' }));
 }
 
@@ -913,14 +1019,14 @@ function stop() {
   teardownPeers();
   if (ws) ws.close();
   if (localStream) {
-    localStream.getTracks().forEach(t => t.stop());
+    localStream.getTracks().forEach(track => track.stop());
     localVideo.srcObject = null;
   }
   sharingScreen = false;
   cameraTrackBackup = null;
   screenBtn.disabled = true;
-  screenBtn.textContent = '🖥️ Compartilhar tela';
-  setStatus('', 'desconectado');
+  screenBtn.textContent = t('shareBtn');
+  setStatus('', t('statusDisconnected'));
   startBtn.disabled = false;
   stopBtn.disabled = true;
   nextBtn.disabled = true;
@@ -949,7 +1055,7 @@ async function flipCamera() {
     localVideo.srcObject = localStream;
     currentFacingMode = nextFacing;
   } catch (err) {
-    addMsg('não consegui trocar de câmera: ' + err.message, 'system');
+    addMsg(t('flipError') + err.message, 'system');
   }
 }
 
@@ -967,7 +1073,7 @@ async function toggleScreenShare() {
 
       localVideo.srcObject = screenStream;
       sharingScreen = true;
-      screenBtn.textContent = '🖥️ Parar compartilhamento';
+      screenBtn.textContent = t('stopShareBtn');
       screenTrack.onended = () => stopScreenShare();
     } catch (err) {
       // Usuário cancelou o seletor de tela — não é um erro de verdade
@@ -987,7 +1093,7 @@ async function stopScreenShare() {
   }
   localVideo.srcObject = localStream;
   sharingScreen = false;
-  screenBtn.textContent = '🖥️ Compartilhar tela';
+  screenBtn.textContent = t('shareBtn');
 }
 
 function sendChat() {
@@ -1044,7 +1150,29 @@ document.getElementById('themeToggle').addEventListener('click', () => {
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') sendChat();
 });
-resetChatLog();
+
+// Idioma — inglês por padrão, com opção de trocar pra português
+function applyLanguage(lang) {
+  document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+  });
+  document.getElementById('moreBtn').title = t('moreOptionsTitle');
+  document.getElementById('langToggle').textContent = lang === 'en' ? '🇧🇷 PT' : '🇺🇸 EN';
+  if (!connected && !ws) {
+    statusText.textContent = t('statusDisconnected');
+  }
+  resetChatLog();
+}
+applyLanguage(getLang());
+document.getElementById('langToggle').addEventListener('click', () => {
+  const next = getLang() === 'en' ? 'pt' : 'en';
+  localStorage.setItem('lang', next);
+  applyLanguage(next);
+});
 
 // Botão de apoio (Pix)
 const supportBtn = document.getElementById('supportBtn');
@@ -1061,11 +1189,11 @@ document.getElementById('copyPixBtn').addEventListener('click', async () => {
   const btn = document.getElementById('copyPixBtn');
   try {
     await navigator.clipboard.writeText(key);
-    btn.textContent = 'copiado!';
+    btn.textContent = t('copiedMsg');
   } catch (e) {
-    btn.textContent = 'erro :(';
+    btn.textContent = t('copyErrorMsg');
   }
-  setTimeout(() => { btn.textContent = 'copiar'; }, 2000);
+  setTimeout(() => { btn.textContent = t('copyBtn'); }, 2000);
 });
 </script>
 </body>

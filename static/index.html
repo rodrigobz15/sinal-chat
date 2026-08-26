@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2isPair — converse com estranhos ao vivo</title>
+<title id="pageTitle">2isPair — talk to strangers live</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -110,6 +110,19 @@
     cursor: pointer;
   }
   .theme-toggle:hover{ border-color: var(--accent-a); }
+
+  .lang-toggle{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .lang-toggle:hover{ border-color: var(--accent-a); }
 
   .support-menu{
     position: relative;
@@ -475,19 +488,20 @@
     <div class="brand-name"><span class="two">2is</span><span class="pair">Pair</span></div>
   </div>
   <div style="display:flex; align-items:center; gap:12px;">
-    <div class="online-pill"><span class="dot"></span><span id="onlineCount">—</span> online agora</div>
+    <div class="online-pill"><span class="dot"></span><span id="onlineCount">—</span> <span data-i18n="onlineNow">online now</span></div>
     <div class="support-menu">
-      <button class="support-btn" id="supportBtn">☕ Apoiar</button>
+      <button class="support-btn" id="supportBtn" data-i18n="supportBtn">☕ Support</button>
       <div class="support-dropdown" id="supportDropdown">
-        <strong>Apoie o 2isPair</strong>
-        <p>Esse é um projeto pessoal, sem fins comerciais. Se quiser ajudar a manter no ar, um Pix é muito bem-vindo 💜</p>
+        <strong data-i18n="supportTitle">Support 2isPair</strong>
+        <p data-i18n="supportText">This is a personal, non-commercial project. If you'd like to help keep it running, a Pix donation is very welcome 💜</p>
         <div class="pix-row">
           <code id="pixKey">rodrigozef11@gmail.com</code>
-          <button id="copyPixBtn" type="button">copiar</button>
+          <button id="copyPixBtn" type="button" data-i18n="copyBtn">copy</button>
         </div>
       </div>
     </div>
-    <button class="theme-toggle" id="themeToggle" title="Alternar tema">🌙</button>
+    <button class="lang-toggle" id="langToggle" title="Switch language">🇺🇸 EN</button>
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
   </div>
 </header>
 
@@ -497,103 +511,249 @@
     <div class="blob-char blob-b"></div>
   </div>
 
-  <h1>converse com um estranho</h1>
-  <p class="subtitle">Sem cadastro. Um clique e você já está numa conversa nova — por texto ou vídeo, com quem quiser no mundo.</p>
+  <h1 data-i18n="heroTitle">talk to a stranger</h1>
+  <p class="subtitle" data-i18n="heroSubtitle">No sign-up. One click and you're already in a new conversation — by text or video, with anyone in the world.</p>
 
   <div class="panel">
     <div class="field">
-      <label>como você quer conversar</label>
+      <label data-i18n="modeLabel">how do you want to talk</label>
       <div class="mode-toggle">
-        <button type="button" class="mode-btn active" data-mode="video">📹 vídeo</button>
-        <button type="button" class="mode-btn" data-mode="text">💬 texto</button>
+        <button type="button" class="mode-btn active" data-mode="video"><span data-i18n="modeVideo">📹 video</span></button>
+        <button type="button" class="mode-btn" data-mode="text"><span data-i18n="modeText">💬 text</span></button>
       </div>
     </div>
 
     <div class="field">
-      <label>com quantas pessoas</label>
+      <label data-i18n="sizeLabel">how many people</label>
       <div class="mode-toggle">
-        <button type="button" class="mode-btn size-btn active" data-size="2" title="Chat 1 a 1 — só você e mais um estranho, ninguém mais entra na conversa.">2isPair</button>
-        <button type="button" class="mode-btn size-btn" data-size="4" title="Sala em grupo — você entra numa sala aberta com até 3 outras pessoas ao mesmo tempo, podendo entrar e sair gente durante a conversa.">4isPair</button>
+        <button type="button" class="mode-btn size-btn active" data-size="2" id="size2Btn" data-i18n-title="size2Title">2isPair</button>
+        <button type="button" class="mode-btn size-btn" data-size="4" id="size4Btn" data-i18n-title="size4Title">4isPair</button>
       </div>
-      <div class="hint">2isPair é você e mais um estranho, só vocês dois. 4isPair é uma sala aberta com até 3 outras pessoas ao mesmo tempo.</div>
+      <div class="hint" data-i18n="sizeHint">2isPair is you and one stranger, just the two of you. 4isPair is an open room with up to 3 other people at once.</div>
     </div>
 
     <div class="field">
-      <label>parear de preferência com pessoas de</label>
+      <label data-i18n="countryLabel">preferably match with people from</label>
       <select id="countrySelect">
-        <option value="any">qualquer país</option>
-        <option value="BR">🇧🇷 Brasil</option>
-        <option value="US">🇺🇸 Estados Unidos</option>
-        <option value="PT">🇵🇹 Portugal</option>
-        <option value="AR">🇦🇷 Argentina</option>
-        <option value="MX">🇲🇽 México</option>
-        <option value="ES">🇪🇸 Espanha</option>
-        <option value="FR">🇫🇷 França</option>
-        <option value="DE">🇩🇪 Alemanha</option>
-        <option value="JP">🇯🇵 Japão</option>
-        <option value="other">outro...</option>
+        <option value="any" data-i18n="countryAny">any country</option>
+        <option value="BR" data-i18n="countryBR">🇧🇷 Brazil</option>
+        <option value="US" data-i18n="countryUS">🇺🇸 United States</option>
+        <option value="PT" data-i18n="countryPT">🇵🇹 Portugal</option>
+        <option value="AR" data-i18n="countryAR">🇦🇷 Argentina</option>
+        <option value="MX" data-i18n="countryMX">🇲🇽 Mexico</option>
+        <option value="ES" data-i18n="countryES">🇪🇸 Spain</option>
+        <option value="FR" data-i18n="countryFR">🇫🇷 France</option>
+        <option value="DE" data-i18n="countryDE">🇩🇪 Germany</option>
+        <option value="JP" data-i18n="countryJP">🇯🇵 Japan</option>
+        <option value="other" data-i18n="countryOther">other...</option>
       </select>
-      <div class="hint">É uma preferência, não uma trava: se ninguém compatível aparecer rápido, te pareamos com qualquer pessoa disponível.</div>
+      <div class="hint" data-i18n="countryHint">It's a preference, not a lock: if nobody compatible shows up quickly, we'll match you with whoever's available.</div>
     </div>
 
     <div class="field">
-      <label>interesses (opcional)</label>
-      <input type="text" id="interestsInput" placeholder="ex: games, música, animes">
-      <div class="hint">Separe por vírgula. Priorizamos parear você com quem listou os mesmos temas.</div>
+      <label data-i18n="interestsLabel">interests (optional)</label>
+      <input type="text" id="interestsInput" data-i18n-placeholder="interestsPlaceholder" placeholder="e.g. games, music, anime">
+      <div class="hint" data-i18n="interestsHint">Separate with commas. We prioritize matching you with people who listed the same topics.</div>
     </div>
 
-    <button class="start-btn" id="startBtn">começar a conversar →</button>
-    <div class="disclaimer">Ao continuar você concorda em manter a conversa respeitosa. Conversas não são gravadas pelo servidor.</div>
+    <button class="start-btn" id="startBtn" data-i18n="startBtn">start chatting →</button>
+    <div class="disclaimer" data-i18n="disclaimer">By continuing you agree to keep the conversation respectful. Conversations are not recorded by the server.</div>
   </div>
 
   <div class="value-grid">
     <div class="value-card">
       <div class="value-icon">🎯</div>
-      <h3>Por interesse</h3>
-      <p>Liste temas e a gente prioriza gente parecida com você.</p>
+      <h3 data-i18n="value1Title">By interest</h3>
+      <p data-i18n="value1Text">List topics and we'll prioritize matching you with similar people.</p>
     </div>
     <div class="value-card">
       <div class="value-icon">🙈</div>
-      <h3>Sem cadastro</h3>
-      <p>Nada de conta, email ou senha. Só entrar e conversar.</p>
+      <h3 data-i18n="value2Title">No sign-up</h3>
+      <p data-i18n="value2Text">No account, email, or password. Just join and chat.</p>
     </div>
     <div class="value-card">
       <div class="value-icon">💬</div>
-      <h3>Texto ou vídeo</h3>
-      <p>Você escolhe como quer papear, do jeito que preferir.</p>
+      <h3 data-i18n="value3Title">Text or video</h3>
+      <p data-i18n="value3Text">You choose how you want to chat, whichever way you prefer.</p>
     </div>
     <div class="value-card">
       <div class="value-icon">💚</div>
-      <h3>100% grátis</h3>
-      <p>Sem mensalidade escondida nem cobrança por hora de uso.</p>
+      <h3 data-i18n="value4Title">100% free</h3>
+      <p data-i18n="value4Text">No hidden fees or hourly charges.</p>
     </div>
   </div>
 
   <div class="faq">
-    <h2>Perguntas frequentes</h2>
+    <h2 data-i18n="faqTitle">Frequently Asked Questions</h2>
     <div class="faq-item">
-      <div class="faq-q"><span>Como funciona o pareamento por interesse?</span><span class="plus">+</span></div>
-      <div class="faq-a">Você digita os temas que quiser (ex: games, música) e a gente tenta te conectar com alguém que listou algo parecido. Se ninguém compatível estiver por perto, você é pareado com a próxima pessoa disponível mesmo assim — ninguém fica esperando pra sempre.</div>
+      <div class="faq-q"><span data-i18n="faq1q">How does interest matching work?</span><span class="plus">+</span></div>
+      <div class="faq-a" data-i18n="faq1a">You type in any topics you want (e.g. games, music) and we try to connect you with someone who listed something similar. If nobody compatible is around, you're matched with the next available person anyway — nobody waits forever.</div>
     </div>
     <div class="faq-item">
-      <div class="faq-q"><span>Preciso me cadastrar?</span><span class="plus">+</span></div>
-      <div class="faq-a">Não. É só escolher texto ou vídeo e clicar em começar. Nenhum dado pessoal é pedido.</div>
+      <div class="faq-q"><span data-i18n="faq2q">Do I need to sign up?</span><span class="plus">+</span></div>
+      <div class="faq-a" data-i18n="faq2a">No. Just choose text or video and click start. No personal data is requested.</div>
     </div>
     <div class="faq-item">
-      <div class="faq-q"><span>Funciona no celular?</span><span class="plus">+</span></div>
-      <div class="faq-a">Sim, funciona direto no navegador do celular, sem precisar instalar nada.</div>
+      <div class="faq-q"><span data-i18n="faq3q">Does it work on mobile?</span><span class="plus">+</span></div>
+      <div class="faq-a" data-i18n="faq3a">Yes, it works right in your phone's browser, no install needed.</div>
     </div>
     <div class="faq-item">
-      <div class="faq-q"><span>É seguro conversar com estranhos aqui?</span><span class="plus">+</span></div>
-      <div class="faq-a">Isso ainda é um projeto pessoal em construção, sem moderação automática por trás. Use o bom senso: nunca compartilhe dados pessoais, e saia da conversa (botão "próximo") se algo parecer errado.</div>
+      <div class="faq-q"><span data-i18n="faq4q">Is it safe to talk to strangers here?</span><span class="plus">+</span></div>
+      <div class="faq-a" data-i18n="faq4a">This is still a personal project under construction, with no automated moderation behind it. Use common sense: never share personal data, and leave the conversation (the "next" button) if something seems off.</div>
     </div>
   </div>
 </main>
 
-<footer>2isPair — protótipo pessoal, sem fins comerciais (por enquanto)</footer>
+<footer data-i18n="footer">2isPair — personal prototype, non-commercial (for now)</footer>
 
 <script>
 let selectedMode = 'video';
+// ---- Sistema de idiomas: inglês por padrão, com opção de trocar pra português ----
+const translations = {
+  en: {
+    pageTitle: '2isPair — talk to strangers live',
+    onlineNow: 'online now',
+    supportBtn: '☕ Support',
+    supportTitle: 'Support 2isPair',
+    supportText: "This is a personal, non-commercial project. If you'd like to help keep it running, a Pix donation is very welcome 💜",
+    copyBtn: 'copy',
+    copiedMsg: 'copied!',
+    copyErrorMsg: 'error :(',
+    heroTitle: 'talk to a stranger',
+    heroSubtitle: "No sign-up. One click and you're already in a new conversation — by text or video, with anyone in the world.",
+    modeLabel: 'how do you want to talk',
+    modeVideo: '📹 video',
+    modeText: '💬 text',
+    sizeLabel: 'how many people',
+    size2Title: '1-on-1 chat — just you and one stranger, nobody else joins the conversation.',
+    size4Title: 'Group room — you join an open room with up to 3 other people at once, people can join and leave during the conversation.',
+    sizeHint: '2isPair is you and one stranger, just the two of you. 4isPair is an open room with up to 3 other people at once.',
+    countryLabel: 'preferably match with people from',
+    countryAny: 'any country',
+    countryBR: '🇧🇷 Brazil',
+    countryUS: '🇺🇸 United States',
+    countryPT: '🇵🇹 Portugal',
+    countryAR: '🇦🇷 Argentina',
+    countryMX: '🇲🇽 Mexico',
+    countryES: '🇪🇸 Spain',
+    countryFR: '🇫🇷 France',
+    countryDE: '🇩🇪 Germany',
+    countryJP: '🇯🇵 Japan',
+    countryOther: 'other...',
+    countryHint: "It's a preference, not a lock: if nobody compatible shows up quickly, we'll match you with whoever's available.",
+    interestsLabel: 'interests (optional)',
+    interestsPlaceholder: 'e.g. games, music, anime',
+    interestsHint: 'Separate with commas. We prioritize matching you with people who listed the same topics.',
+    startBtn: 'start chatting →',
+    disclaimer: 'By continuing you agree to keep the conversation respectful. Conversations are not recorded by the server.',
+    value1Title: 'By interest',
+    value1Text: "List topics and we'll prioritize matching you with similar people.",
+    value2Title: 'No sign-up',
+    value2Text: 'No account, email, or password. Just join and chat.',
+    value3Title: 'Text or video',
+    value3Text: 'You choose how you want to chat, whichever way you prefer.',
+    value4Title: '100% free',
+    value4Text: 'No hidden fees or hourly charges.',
+    faqTitle: 'Frequently Asked Questions',
+    faq1q: 'How does interest matching work?',
+    faq1a: "You type in any topics you want (e.g. games, music) and we try to connect you with someone who listed something similar. If nobody compatible is around, you're matched with the next available person anyway — nobody waits forever.",
+    faq2q: 'Do I need to sign up?',
+    faq2a: 'No. Just choose text or video and click start. No personal data is requested.',
+    faq3q: 'Does it work on mobile?',
+    faq3a: "Yes, it works right in your phone's browser, no install needed.",
+    faq4q: 'Is it safe to talk to strangers here?',
+    faq4a: 'This is still a personal project under construction, with no automated moderation behind it. Use common sense: never share personal data, and leave the conversation (the "next" button) if something seems off.',
+    footer: '2isPair — personal prototype, non-commercial (for now)',
+  },
+  pt: {
+    pageTitle: '2isPair — converse com estranhos ao vivo',
+    onlineNow: 'online agora',
+    supportBtn: '☕ Apoiar',
+    supportTitle: 'Apoie o 2isPair',
+    supportText: 'Esse é um projeto pessoal, sem fins comerciais. Se quiser ajudar a manter no ar, um Pix é muito bem-vindo 💜',
+    copyBtn: 'copiar',
+    copiedMsg: 'copiado!',
+    copyErrorMsg: 'erro :(',
+    heroTitle: 'converse com um estranho',
+    heroSubtitle: 'Sem cadastro. Um clique e você já está numa conversa nova — por texto ou vídeo, com quem quiser no mundo.',
+    modeLabel: 'como você quer conversar',
+    modeVideo: '📹 vídeo',
+    modeText: '💬 texto',
+    sizeLabel: 'com quantas pessoas',
+    size2Title: 'Chat 1 a 1 — só você e mais um estranho, ninguém mais entra na conversa.',
+    size4Title: 'Sala em grupo — você entra numa sala aberta com até 3 outras pessoas ao mesmo tempo, podendo entrar e sair gente durante a conversa.',
+    sizeHint: '2isPair é você e mais um estranho, só vocês dois. 4isPair é uma sala aberta com até 3 outras pessoas ao mesmo tempo.',
+    countryLabel: 'parear de preferência com pessoas de',
+    countryAny: 'qualquer país',
+    countryBR: '🇧🇷 Brasil',
+    countryUS: '🇺🇸 Estados Unidos',
+    countryPT: '🇵🇹 Portugal',
+    countryAR: '🇦🇷 Argentina',
+    countryMX: '🇲🇽 México',
+    countryES: '🇪🇸 Espanha',
+    countryFR: '🇫🇷 França',
+    countryDE: '🇩🇪 Alemanha',
+    countryJP: '🇯🇵 Japão',
+    countryOther: 'outro...',
+    countryHint: 'É uma preferência, não uma trava: se ninguém compatível aparecer rápido, te pareamos com qualquer pessoa disponível.',
+    interestsLabel: 'interesses (opcional)',
+    interestsPlaceholder: 'ex: games, música, animes',
+    interestsHint: 'Separe por vírgula. Priorizamos parear você com quem listou os mesmos temas.',
+    startBtn: 'começar a conversar →',
+    disclaimer: 'Ao continuar você concorda em manter a conversa respeitosa. Conversas não são gravadas pelo servidor.',
+    value1Title: 'Por interesse',
+    value1Text: 'Liste temas e a gente prioriza gente parecida com você.',
+    value2Title: 'Sem cadastro',
+    value2Text: 'Nada de conta, email ou senha. Só entrar e conversar.',
+    value3Title: 'Texto ou vídeo',
+    value3Text: 'Você escolhe como quer papear, do jeito que preferir.',
+    value4Title: '100% grátis',
+    value4Text: 'Sem mensalidade escondida nem cobrança por hora de uso.',
+    faqTitle: 'Perguntas frequentes',
+    faq1q: 'Como funciona o pareamento por interesse?',
+    faq1a: 'Você digita os temas que quiser (ex: games, música) e a gente tenta te conectar com alguém que listou algo parecido. Se ninguém compatível estiver por perto, você é pareado com a próxima pessoa disponível mesmo assim — ninguém fica esperando pra sempre.',
+    faq2q: 'Preciso me cadastrar?',
+    faq2a: 'Não. É só escolher texto ou vídeo e clicar em começar. Nenhum dado pessoal é pedido.',
+    faq3q: 'Funciona no celular?',
+    faq3a: 'Sim, funciona direto no navegador do celular, sem precisar instalar nada.',
+    faq4q: 'É seguro conversar com estranhos aqui?',
+    faq4a: 'Isso ainda é um projeto pessoal em construção, sem moderação automática por trás. Use o bom senso: nunca compartilhe dados pessoais, e saia da conversa (botão "próximo") se algo parecer errado.',
+    footer: '2isPair — protótipo pessoal, sem fins comerciais (por enquanto)',
+  }
+};
+
+function getLang() {
+  return localStorage.getItem('lang') || 'en';
+}
+
+function applyLanguage(lang) {
+  const dict = translations[lang] || translations.en;
+  document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
+  document.title = dict.pageTitle;
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key] !== undefined) el.textContent = dict[key];
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    if (dict[key] !== undefined) el.title = dict[key];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (dict[key] !== undefined) el.placeholder = dict[key];
+  });
+
+  document.getElementById('langToggle').textContent = lang === 'en' ? '🇧🇷 PT' : '🇺🇸 EN';
+}
+
+applyLanguage(getLang());
+document.getElementById('langToggle').addEventListener('click', () => {
+  const next = getLang() === 'en' ? 'pt' : 'en';
+  localStorage.setItem('lang', next);
+  applyLanguage(next);
+});
+
 let selectedSize = 2;
 
 document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
@@ -667,13 +827,14 @@ supportDropdown.addEventListener('click', (e) => e.stopPropagation());
 document.getElementById('copyPixBtn').addEventListener('click', async () => {
   const key = document.getElementById('pixKey').textContent;
   const btn = document.getElementById('copyPixBtn');
+  const dict = translations[getLang()] || translations.en;
   try {
     await navigator.clipboard.writeText(key);
-    btn.textContent = 'copiado!';
+    btn.textContent = dict.copiedMsg;
   } catch (e) {
-    btn.textContent = 'erro :(';
+    btn.textContent = dict.copyErrorMsg;
   }
-  setTimeout(() => { btn.textContent = 'copiar'; }, 2000);
+  setTimeout(() => { btn.textContent = dict.copyBtn; }, 2000);
 });
 </script>
 </body>
